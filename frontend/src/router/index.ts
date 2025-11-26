@@ -54,6 +54,18 @@ const router = createRouter({
       component: () => import('@/views/music/SongDetail.vue'),
       meta: { requiresAuth: false },
     },
+    {
+      path: '/my/starred',
+      name: 'MyStarredSongs',
+      component: () => import('@/views/music/MyStarredSongs.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/my/bought',
+      name: 'MyBoughtSongs',
+      component: () => import('@/views/music/MyBoughtSongs.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

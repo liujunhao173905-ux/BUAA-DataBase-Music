@@ -10,6 +10,7 @@ from django.utils import timezone
 from .models import Song, StarSong, BuySong
 from .serializers import SongSerializer, SongCreateSerializer, StarSongSerializer, BuySongSerializer
 from apps.users.models import LoginLog
+from apps.audit.models import CheckSongLog
 
 
 class SongViewSet(viewsets.ModelViewSet):
@@ -250,4 +251,5 @@ class SongStatisticsView(APIView):
                     for song in songs
                 ]
             })
+
 

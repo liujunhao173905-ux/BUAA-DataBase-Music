@@ -3,7 +3,9 @@
     <el-container>
       <el-header>
         <div class="header-content">
-          <h1>音乐平台</h1>
+          <router-link to="/home" style="text-decoration: none;">
+            <h1 style="margin: 0; color: #409eff;">音乐平台</h1>
+          </router-link>
           <div class="header-actions">
             <el-input
               v-model="searchKeyword"
@@ -26,6 +28,8 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item @click="$router.push('/profile')">个人资料</el-dropdown-item>
+                  <el-dropdown-item @click="$router.push('/my/starred')">我的收藏</el-dropdown-item>
+                  <el-dropdown-item @click="$router.push('/my/bought')">我的购买</el-dropdown-item>
                   <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
                 </el-dropdown-menu>
               </template>

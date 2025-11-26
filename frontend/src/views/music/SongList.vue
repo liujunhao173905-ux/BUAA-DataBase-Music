@@ -129,13 +129,11 @@ const fetchSongs = async (page = pagination.page) => {
     if (filters.priceMax !== null) params.price_max = filters.priceMax
 
     const response = await request.get('/music/songs/', { params })
-    if (Array.isArray(response)) {
-      songs.value = response
-      pagination.total = response.length
-    } else {
-      songs.value = response.results || []
-      pagination.total = response.count || songs.value.length
-    }
+    // 使用类型断言来处理API响应
+    const responseData = response as { results?: any[], count?: number }
+    // 直接使用后端返回的数据格式
+    songs.value = responseData.results || []
+    pagination.total = responseData.count || songs.value.length
     pagination.page = page
   } catch (error) {
     ElMessage.error('加载歌曲列表失败')
@@ -169,9 +167,11 @@ const handleSongClick = (songId: number) => {
   router.push({ name: 'SongDetail', params: { id: String(songId) } })
 }
 
-const formatPrice = (price: number) => {
-  if (!price) return '免费'
-  return `¥${price.toFixed(2)}`
+const formatPrice = (price: any) => {
+  // 检查price是否为有效数字
+  const priceNum = Number(price)
+  if (!price || isNaN(priceNum)) return '免费'
+  return `¥${priceNum.toFixed(2)}`
 }
 
 watch(
@@ -261,5 +261,6 @@ watch(
   justify-content: center;
 }
 </style>
+
 
 

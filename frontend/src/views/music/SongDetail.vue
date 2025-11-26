@@ -72,7 +72,8 @@ const buyLoading = ref(false)
 
 const buyButtonText = computed(() => {
   if (!song.value) return '购买'
-  return song.value.song_price ? `购买 - ¥${song.value.song_price.toFixed(2)}` : '购买'
+  const price = Number(song.value.song_price)
+  return !isNaN(price) && price > 0 ? `购买 - ¥${price.toFixed(2)}` : '购买'
 })
 
 const fetchSongDetail = async () => {
@@ -134,9 +135,10 @@ const handleBuySong = async () => {
   }
 }
 
-const formatPrice = (price: number) => {
-  if (!price) return '免费'
-  return `¥${price.toFixed(2)}`
+const formatPrice = (price: any) => {
+  const numPrice = Number(price)
+  if (!price || isNaN(numPrice)) return '免费'
+  return `¥${numPrice.toFixed(2)}`
 }
 
 const handleBack = () => {
