@@ -2,6 +2,15 @@
 审核视图
 """
 from rest_framework import status, permissions, viewsets
+from rest_framework.permissions import BasePermission
+from .pagination import CustomPageNumberPagination
+from django.db.models import Q
+
+
+class IsAdminUser(BasePermission):
+    """自定义管理员权限：只有user_type为2的用户才能访问"""
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.user_type == 2
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
@@ -21,6 +30,7 @@ class CheckSongLogViewSet(viewsets.ModelViewSet):
     queryset = CheckSongLog.objects.all()
     serializer_class = CheckSongLogSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPageNumberPagination
     
     def get_queryset(self):
         """根据用户类型返回不同的查询集"""
@@ -33,8 +43,17 @@ class CheckSongLogViewSet(viewsets.ModelViewSet):
         
         # 按状态筛选
         status_filter = self.request.query_params.get('status', None)
-        if status_filter is not None:
-            queryset = queryset.filter(check_status=int(status_filter))
+        if status_filter is not None and status_filter.strip() != '':
+            try:
+                # 支持数组格式的status参数
+                status_list = list(map(int, status_filter.split(',')))
+                if len(status_list) > 1:
+                    queryset = queryset.filter(check_status__in=status_list)
+                else:
+                    queryset = queryset.filter(check_status=status_list[0])
+            except:
+                # 如果解析失败，尝试作为单个状态处理
+                queryset = queryset.filter(check_status=int(status_filter))
         
         return queryset.order_by('-check_submit_time')
     
@@ -45,7 +64,7 @@ class CheckSongLogViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated()]
         else:
             # 审核操作：只有管理员可以
-            return [permissions.IsAuthenticated()]
+            return [permissions.IsAuthenticated(), permissions.IsAdminUser()]
     
     def perform_create(self, serializer):
         """创建审核记录（通常由系统自动创建）"""
@@ -100,11 +119,6 @@ class CheckSongLogViewSet(viewsets.ModelViewSet):
             )
         
         comment = request.data.get('comment', '')
-        if not comment:
-            return Response(
-                {'error': '拒绝审核必须提供审核意见'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         # 更新审核状态
         check_log.check_status = 2  # 审核拒绝
@@ -121,6 +135,52 @@ class CheckSongLogViewSet(viewsets.ModelViewSet):
             'message': '审核已拒绝',
             'check_log': CheckSongLogSerializer(check_log).data
         })
+    
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def clear(self, request, pk=None):
+        """清空审核，重置为待审核状态"""
+        if request.user.user_type != 2:
+            return Response(
+                {'error': '只有管理员可以清空审核'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        check_log = self.get_object()
+        
+        # 更新审核状态
+        check_log.check_status = 0  # 重置为待审核
+        check_log.check_admin = None  # 清空审核管理员
+        check_log.check_comment = ''  # 清空审核意见
+        check_log.save()
+        
+        # 歌曲重置为未上架状态
+        song = check_log.check_song
+        song.is_active = False
+        song.save()
+        
+        return Response({
+            'message': '审核已清空',
+            'check_log': CheckSongLogSerializer(check_log).data
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def clear_all(self, request):
+        """清空所有已通过或拒绝的审核记录"""
+        if request.user.user_type != 2:
+            return Response(
+                {'error': '只有管理员可以清空审核记录'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # 删除所有已通过（1）或拒绝（2）的审核记录
+        deleted_count, _ = CheckSongLog.objects.filter(
+            check_status__in=[1, 2]
+        ).delete()
+        
+        return Response({
+            'message': f'已清空 {deleted_count} 条审核记录',
+            'deleted_count': deleted_count
+        })
 
 
 class CheckPlaylistLogViewSet(viewsets.ModelViewSet):
@@ -128,6 +188,7 @@ class CheckPlaylistLogViewSet(viewsets.ModelViewSet):
     queryset = CheckPlaylistLog.objects.all()
     serializer_class = CheckPlaylistLogSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPageNumberPagination
     
     def get_queryset(self):
         """根据用户类型返回不同的查询集"""
@@ -139,8 +200,17 @@ class CheckPlaylistLogViewSet(viewsets.ModelViewSet):
         
         # 按状态筛选
         status_filter = self.request.query_params.get('status', None)
-        if status_filter is not None:
-            queryset = queryset.filter(check_status=int(status_filter))
+        if status_filter is not None and status_filter.strip() != '':
+            try:
+                # 支持数组格式的status参数
+                status_list = list(map(int, status_filter.split(',')))
+                if len(status_list) > 1:
+                    queryset = queryset.filter(check_status__in=status_list)
+                else:
+                    queryset = queryset.filter(check_status=status_list[0])
+            except:
+                # 如果解析失败，尝试作为单个状态处理
+                queryset = queryset.filter(check_status=int(status_filter))
         
         return queryset.order_by('-check_submit_time')
     
@@ -198,11 +268,6 @@ class CheckPlaylistLogViewSet(viewsets.ModelViewSet):
             )
         
         comment = request.data.get('comment', '')
-        if not comment:
-            return Response(
-                {'error': '拒绝审核必须提供审核意见'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         check_log.check_status = 2
         check_log.check_admin = request.user
@@ -217,6 +282,52 @@ class CheckPlaylistLogViewSet(viewsets.ModelViewSet):
             'message': '审核已拒绝',
             'check_log': CheckPlaylistLogSerializer(check_log).data
         })
+    
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def clear(self, request, pk=None):
+        """清空审核，重置为待审核状态"""
+        if request.user.user_type != 2:
+            return Response(
+                {'error': '只有管理员可以清空审核'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        check_log = self.get_object()
+        
+        # 更新审核状态
+        check_log.check_status = 0  # 重置为待审核
+        check_log.check_admin = None  # 清空审核管理员
+        check_log.check_comment = ''  # 清空审核意见
+        check_log.save()
+        
+        # 歌单重置为未上架状态
+        playlist = check_log.check_playlist
+        playlist.is_active = False
+        playlist.save()
+        
+        return Response({
+            'message': '审核已清空',
+            'check_log': CheckPlaylistLogSerializer(check_log).data
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def clear_all(self, request):
+        """清空所有已通过或拒绝的审核记录"""
+        if request.user.user_type != 2:
+            return Response(
+                {'error': '只有管理员可以清空审核记录'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # 删除所有已通过（1）或拒绝（2）的审核记录
+        deleted_count, _ = CheckPlaylistLog.objects.filter(
+            check_status__in=[1, 2]
+        ).delete()
+        
+        return Response({
+            'message': f'已清空 {deleted_count} 条审核记录',
+            'deleted_count': deleted_count
+        })
 
 
 class CheckUserLogViewSet(viewsets.ModelViewSet):
@@ -224,6 +335,7 @@ class CheckUserLogViewSet(viewsets.ModelViewSet):
     queryset = CheckUserLog.objects.all()
     serializer_class = CheckUserLogSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPageNumberPagination
     
     def get_queryset(self):
         """根据用户类型返回不同的查询集"""
@@ -235,8 +347,17 @@ class CheckUserLogViewSet(viewsets.ModelViewSet):
         
         # 按状态筛选
         status_filter = self.request.query_params.get('status', None)
-        if status_filter is not None:
-            queryset = queryset.filter(check_status=int(status_filter))
+        if status_filter is not None and status_filter.strip() != '':
+            try:
+                # 支持数组格式的status参数
+                status_list = list(map(int, status_filter.split(',')))
+                if len(status_list) > 1:
+                    queryset = queryset.filter(check_status__in=status_list)
+                else:
+                    queryset = queryset.filter(check_status=status_list[0])
+            except:
+                # 如果解析失败，尝试作为单个状态处理
+                queryset = queryset.filter(check_status=int(status_filter))
         
         return queryset.order_by('-check_submit_time')
     
@@ -268,7 +389,12 @@ class CheckUserLogViewSet(viewsets.ModelViewSet):
         check_log.check_comment = request.data.get('comment', '')
         check_log.save()
         
-        # 用户审核通过后，用户类型保持不变（已经是歌手类型）
+        # 用户审核通过后，将普通用户改为歌手
+        user = check_log.check_user
+        if user.user_type == 0 and check_log.check_user_type == 1:
+            user.user_type = 1  # 改为歌手类型
+            user.save()
+            
         # 这里可以添加其他业务逻辑，比如发送通知等
         
         return Response({
@@ -293,11 +419,6 @@ class CheckUserLogViewSet(viewsets.ModelViewSet):
             )
         
         comment = request.data.get('comment', '')
-        if not comment:
-            return Response(
-                {'error': '拒绝审核必须提供审核意见'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         check_log.check_status = 2
         check_log.check_admin = request.user
@@ -313,5 +434,52 @@ class CheckUserLogViewSet(viewsets.ModelViewSet):
         return Response({
             'message': '审核已拒绝',
             'check_log': CheckUserLogSerializer(check_log).data
+        })
+    
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def clear(self, request, pk=None):
+        """清空审核，重置为待审核状态"""
+        if request.user.user_type != 2:
+            return Response(
+                {'error': '只有管理员可以清空审核'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        check_log = self.get_object()
+        
+        # 更新审核状态
+        check_log.check_status = 0  # 重置为待审核
+        check_log.check_admin = None  # 清空审核管理员
+        check_log.check_comment = ''  # 清空审核意见
+        check_log.save()
+        
+        # 用户重置为普通用户类型
+        user = check_log.check_user
+        if user.user_type != 0:
+            user.user_type = 0
+            user.save()
+        
+        return Response({
+            'message': '审核已清空',
+            'check_log': CheckUserLogSerializer(check_log).data
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def clear_all(self, request):
+        """清空所有已通过或拒绝的审核记录"""
+        if request.user.user_type != 2:
+            return Response(
+                {'error': '只有管理员可以清空审核记录'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # 删除所有已通过（1）或拒绝（2）的审核记录
+        deleted_count, _ = CheckUserLog.objects.filter(
+            check_status__in=[1, 2]
+        ).delete()
+        
+        return Response({
+            'message': f'已清空 {deleted_count} 条审核记录',
+            'deleted_count': deleted_count
         })
 

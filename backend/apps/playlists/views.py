@@ -4,7 +4,8 @@
 from rest_framework import status, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Q
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q, F, Max
 from .models import Playlist, PlaylistSong, StarPlaylist
 from .serializers import (
     PlaylistSerializer, 
@@ -13,12 +14,36 @@ from .serializers import (
     StarPlaylistSerializer
 )
 from apps.music.models import Song
+from apps.audit.models import CheckPlaylistLog
 
 
 class PlaylistViewSet(viewsets.ModelViewSet):
     """歌单视图集"""
     queryset = Playlist.objects.all()
     serializer_class = PlaylistSerializer
+    
+    def list(self, request, *args, **kwargs):
+        """获取歌单列表，支持搜索和分页"""
+        queryset = self.get_queryset()
+        
+        # 获取分页数据
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return Response({
+                'data': {
+                    'playlists': serializer.data,
+                    'total': self.paginator.page.paginator.count
+                }
+            })
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'data': {
+                'playlists': serializer.data,
+                'total': queryset.count()
+            }
+        })
     
     def get_queryset(self):
         """根据用户类型和权限返回不同的查询集"""
@@ -62,16 +87,8 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated()]
     
     def perform_create(self, serializer):
-        """创建歌单，自动创建审核记录"""
-        playlist = serializer.save()
-        # 创建审核记录
-        CheckPlaylistLog.objects.create(
-            check_playlist=playlist,
-            check_playlist_name=playlist.playlist_name,
-            check_playlist_cover=str(playlist.playlist_cover) if playlist.playlist_cover else '',
-            check_playlist_intro=playlist.playlist_intro or '',
-            check_status=0  # 待审核
-        )
+        """创建歌单"""
+        serializer.save()
     
     def perform_update(self, serializer):
         """更新歌单（需要重新审核）"""
@@ -205,11 +222,55 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             return Response({'error': '未收藏该歌单'}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def my_starred(self, request):
+        """获取用户收藏的歌单"""
+        starred_playlists = StarPlaylist.objects.filter(
+            user=request.user
+        ).select_related('playlist').order_by('-star_time')
+        
+        # 添加分页支持
+        page = self.paginate_queryset(starred_playlists)
+        if page is not None:
+            # 序列化数据
+            playlists = [item.playlist for item in page]
+            serializer = PlaylistSerializer(playlists, many=True)
+            return Response({
+                'data': {
+                    'playlists': serializer.data,
+                    'total': self.paginator.page.paginator.count
+                }
+            })
+        
+        playlists = [item.playlist for item in starred_playlists]
+        serializer = PlaylistSerializer(playlists, many=True)
+        return Response({
+            'data': {
+                'playlists': serializer.data,
+                'total': starred_playlists.count()
+            }
+        })
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def my_playlists(self, request):
         """获取当前用户创建的歌单"""
         playlists = Playlist.objects.filter(playlist_creator=request.user)
+        # 添加分页支持
+        page = self.paginate_queryset(playlists)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return Response({
+                'data': {
+                    'playlists': serializer.data,
+                    'total': self.paginator.page.paginator.count
+                }
+            })
         serializer = self.get_serializer(playlists, many=True)
-        return Response(serializer.data)
+        return Response({
+            'data': {
+                'playlists': serializer.data,
+                'total': playlists.count()
+            }
+        })
     
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def starred(self, request):
@@ -217,5 +278,22 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         star_playlists = StarPlaylist.objects.filter(user=request.user).select_related('playlist')
         playlists = [star_playlist.playlist for star_playlist in star_playlists]
         serializer = self.get_serializer(playlists, many=True)
-        return Response(serializer.data)
+        return Response({
+            'data': {
+                'playlists': serializer.data,
+                'total': len(playlists)
+            }
+        })
+    
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def check_star(self, request, pk=None):
+        """检查用户是否收藏了歌单"""
+        # 直接获取歌单对象，不使用get_object()以绕过权限限制
+        try:
+            playlist = Playlist.objects.get(pk=pk)
+            is_starred = StarPlaylist.objects.filter(user=request.user, playlist=playlist).exists()
+            return Response({'is_starred': is_starred}, status=status.HTTP_200_OK)
+        except Playlist.DoesNotExist:
+            return Response({'error': '歌单不存在'}, status=status.HTTP_404_NOT_FOUND)
+
 

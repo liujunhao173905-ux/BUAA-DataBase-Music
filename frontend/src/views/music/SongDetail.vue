@@ -1,8 +1,16 @@
 <template>
   <div class="song-detail-page">
-    <el-page-header content="歌曲详情" @back="handleBack" />
-
     <el-card class="song-card" v-loading="loading">
+      <template #header>
+        <div class="card-header">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <el-button type="default" @click="handleBack">
+              <el-icon><ArrowLeft /></el-icon> 返回
+            </el-button>
+            <h2>歌曲详情</h2>
+          </div>
+        </div>
+      </template>
       <template v-if="song">
         <div class="song-content">
           <el-image
@@ -58,6 +66,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { useAuthStore } from '@/stores/auth'
 

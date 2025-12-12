@@ -11,8 +11,9 @@ from apps.users.serializers import UserProfileSerializer
 class CheckSongLogSerializer(serializers.ModelSerializer):
     """歌曲审核日志序列化器"""
     check_song_detail = SongSerializer(source='check_song', read_only=True)
-    check_admin_name = serializers.CharField(source='check_admin.user_name', read_only=True)
+    check_admin_name = serializers.CharField(source='check_admin.user_name', read_only=True, allow_null=True)
     check_status_display = serializers.CharField(source='get_check_status_display', read_only=True)
+    check_song_price = serializers.DecimalField(max_digits=10, decimal_places=2, coerce_to_string=False, read_only=True)
     
     class Meta:
         model = CheckSongLog
@@ -29,7 +30,7 @@ class CheckSongLogSerializer(serializers.ModelSerializer):
 class CheckPlaylistLogSerializer(serializers.ModelSerializer):
     """歌单审核日志序列化器"""
     check_playlist_detail = PlaylistSerializer(source='check_playlist', read_only=True)
-    check_admin_name = serializers.CharField(source='check_admin.user_name', read_only=True)
+    check_admin_name = serializers.CharField(source='check_admin.user_name', read_only=True, allow_null=True)
     check_status_display = serializers.CharField(source='get_check_status_display', read_only=True)
     
     class Meta:
@@ -46,7 +47,7 @@ class CheckPlaylistLogSerializer(serializers.ModelSerializer):
 class CheckUserLogSerializer(serializers.ModelSerializer):
     """用户审核日志序列化器"""
     check_user_detail = UserProfileSerializer(source='check_user', read_only=True)
-    check_admin_name = serializers.CharField(source='check_admin.user_name', read_only=True)
+    check_admin_name = serializers.CharField(source='check_admin.user_name', read_only=True, allow_null=True)
     check_status_display = serializers.CharField(source='get_check_status_display', read_only=True)
     
     class Meta:

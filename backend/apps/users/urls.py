@@ -10,6 +10,8 @@ from .views import (
     FollowView,
     FollowersListView,
     FollowingListView,
+    MyFollowingListView,
+    SingerListView,
 )
 
 urlpatterns = [
@@ -25,5 +27,8 @@ urlpatterns = [
     path('<int:user_id>/follow/', FollowView.as_view(), name='follow-user'),
     path('<int:user_id>/followers/', FollowersListView.as_view(), name='followers-list'),
     path('<int:user_id>/following/', FollowingListView.as_view(), name='following-list'),
+    path('me/following/', MyFollowingListView.as_view(), name='my-following-list'),
+    # 歌手列表
+    path('singers/', SingerListView.as_view(), name='singer-list'),
 ]
 

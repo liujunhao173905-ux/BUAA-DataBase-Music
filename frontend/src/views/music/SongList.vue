@@ -2,9 +2,12 @@
   <div class="song-list-page">
     <el-card class="filter-card">
       <div class="filter-row">
+        <el-button type="default" @click="handleBack" style="margin-right: 10px;">
+          <el-icon><ArrowLeft /></el-icon> 返回
+        </el-button>
         <el-input
           v-model="filters.search"
-          placeholder="搜索歌曲或歌手"
+          :placeholder="getSearchPlaceholder()"
           clearable
           @keyup.enter="handleFilterSubmit"
         >
@@ -12,19 +15,30 @@
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
-        <el-input-number
-          v-model="filters.priceMin"
-          :min="0"
-          :max="filters.priceMax ?? undefined"
-          :controls="false"
-          placeholder="最低价格"
-        />
-        <el-input-number
-          v-model="filters.priceMax"
-          :min="filters.priceMin ?? 0"
-          :controls="false"
-          placeholder="最高价格"
-        />
+        <el-select
+          v-model="filters.searchType"
+          placeholder="选择搜索类型"
+          style="width: 150px"
+        >
+          <el-option label="歌曲" value="song" />
+          <el-option label="歌单" value="playlist" />
+          <el-option label="歌手" value="singer" />
+        </el-select>
+        <div v-if="filters.searchType === 'song'" class="price-filters">
+          <el-input-number
+            v-model="filters.priceMin"
+            :min="0"
+            :max="filters.priceMax ?? undefined"
+            :controls="false"
+            placeholder="最低价格"
+          />
+          <el-input-number
+            v-model="filters.priceMax"
+            :min="filters.priceMin ?? 0"
+            :controls="false"
+            placeholder="最高价格"
+          />
+        </div>
         <div class="filter-actions">
           <el-button type="primary" @click="handleFilterSubmit">搜索</el-button>
           <el-button @click="handleFilterReset">重置</el-button>
@@ -37,16 +51,16 @@
     <div v-else>
       <el-row v-if="songs.length" :gutter="20">
         <el-col
-          v-for="song in songs"
-          :key="song.song_id"
+          v-for="item in songs"
+          :key="getItemKey(item)"
           :xs="12"
           :sm="8"
           :md="6"
           :lg="4"
         >
-          <el-card class="song-card" @click="handleSongClick(song.song_id)">
+          <el-card class="song-card" @click="handleSongClick(getItemId(item))">
             <el-image
-              :src="song.song_cover || ''"
+              :src="getItemCover(item) || ''"
               fit="cover"
               class="song-cover"
             >
@@ -55,15 +69,17 @@
               </template>
             </el-image>
             <div class="song-info">
-              <h3>{{ song.song_name }}</h3>
-              <p>{{ song.song_singer_name }}</p>
-              <span class="price">{{ formatPrice(song.song_price) }}</span>
+              <h3>{{ getItemName(item) }}</h3>
+              <p>{{ getItemCreator(item) }}</p>
+              <span v-if="filters.searchType === 'song'" class="price">{{ formatPrice(getItemPrice(item)) }}</span>
+              <span v-else-if="filters.searchType === 'playlist'" class="song-count">{{ item.song_count }}首歌曲</span>
+              <span v-else-if="filters.searchType === 'singer'" class="tag">{{ item.user_type_display }}</span>
             </div>
           </el-card>
         </el-col>
       </el-row>
 
-      <el-empty v-else description="暂无歌曲" />
+      <el-empty v-else :description="`暂无${getSearchTypeText()}`" />
 
       <div
         v-if="songs.length && pagination.total > pagination.pageSize"
@@ -85,7 +101,7 @@
 import { reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { ArrowLeft, Search } from '@element-plus/icons-vue'
 import request from '@/api/request'
 
 const route = useRoute()
@@ -102,16 +118,19 @@ const pagination = reactive({
 
 const filters = reactive<{
   search: string
+  searchType: string
   priceMin: number | null
   priceMax: number | null
 }>({
   search: String(route.query.search || ''),
+  searchType: String(route.query.searchType || 'song'),
   priceMin: route.query.price_min ? Number(route.query.price_min) : null,
   priceMax: route.query.price_max ? Number(route.query.price_max) : null,
 })
 
 const syncFiltersFromQuery = () => {
   filters.search = String(route.query.search || '')
+  filters.searchType = String(route.query.searchType || 'song')
   filters.priceMin = route.query.price_min ? Number(route.query.price_min) : null
   filters.priceMax = route.query.price_max ? Number(route.query.price_max) : null
   pagination.page = Number(route.query.page) || 1
@@ -120,23 +139,66 @@ const syncFiltersFromQuery = () => {
 const fetchSongs = async (page = pagination.page) => {
   loading.value = true
   try {
-    const params: Record<string, string | number> = {
-      page,
-      page_size: pagination.pageSize,
-    }
-    if (filters.search) params.search = filters.search
-    if (filters.priceMin !== null) params.price_min = filters.priceMin
-    if (filters.priceMax !== null) params.price_max = filters.priceMax
+    if (filters.searchType === 'song') {
+      // 搜索歌曲
+      const params: Record<string, string | number> = {
+        page,
+        page_size: pagination.pageSize,
+      }
+      if (filters.search) params.search = filters.search
+      if (filters.priceMin !== null) params.price_min = filters.priceMin
+      if (filters.priceMax !== null) params.price_max = filters.priceMax
 
-    const response = await request.get('/music/songs/', { params })
-    // 使用类型断言来处理API响应
-    const responseData = response as { results?: any[], count?: number }
-    // 直接使用后端返回的数据格式
-    songs.value = responseData.results || []
-    pagination.total = responseData.count || songs.value.length
+      const response = await request.get('/music/songs/', { params })
+      // 使用类型断言来处理API响应
+      const responseData = response as { results?: any[], count?: number }
+      // 直接使用后端返回的数据格式
+      songs.value = responseData.results || []
+      pagination.total = responseData.count || songs.value.length
+    } else if (filters.searchType === 'playlist') {
+      // 搜索歌单 - 仅在有搜索关键词时才请求
+      if (filters.search) {
+        const params: Record<string, string | number> = {
+          page,
+          page_size: pagination.pageSize,
+          search: filters.search
+        }
+
+        const response = await request.get('/playlists/', { params })
+        // 使用类型断言来处理API响应
+        const responseData = response as { data?: { playlists?: any[], total?: number } }
+        // 直接使用后端返回的数据格式
+        songs.value = responseData.data?.playlists || []
+        pagination.total = responseData.data?.total || songs.value.length
+      } else {
+        // 没有搜索关键词时，不显示歌单
+        songs.value = []
+        pagination.total = 0
+      }
+    } else if (filters.searchType === 'singer') {
+      // 搜索歌手 - 仅在有搜索关键词时才请求
+      if (filters.search) {
+        const params: Record<string, string | number> = {
+          page,
+          page_size: pagination.pageSize,
+          search: filters.search
+        }
+
+        const response = await request.get('/users/singers/', { params })
+        // 使用类型断言来处理API响应
+        const responseData = response as { results?: any[], count?: number }
+        // 直接使用后端返回的数据格式
+        songs.value = responseData.results || []
+        pagination.total = responseData.count || songs.value.length
+      } else {
+        // 没有搜索关键词时，不显示歌手
+        songs.value = []
+        pagination.total = 0
+      }
+    }
     pagination.page = page
   } catch (error) {
-    ElMessage.error('加载歌曲列表失败')
+    ElMessage.error(`加载${getSearchTypeText()}列表失败`)
   } finally {
     loading.value = false
   }
@@ -145,8 +207,9 @@ const fetchSongs = async (page = pagination.page) => {
 const handleFilterSubmit = () => {
   const query: Record<string, string> = {}
   if (filters.search) query.search = filters.search
-  if (filters.priceMin !== null) query.price_min = String(filters.priceMin)
-  if (filters.priceMax !== null) query.price_max = String(filters.priceMax)
+  query.searchType = filters.searchType
+  if (filters.searchType === 'song' && filters.priceMin !== null) query.price_min = String(filters.priceMin)
+  if (filters.searchType === 'song' && filters.priceMax !== null) query.price_max = String(filters.priceMax)
   query.page = '1'
   router.push({ name: 'SongList', query })
 }
@@ -163,8 +226,18 @@ const handlePageChange = (page: number) => {
   router.push({ name: 'SongList', query })
 }
 
-const handleSongClick = (songId: number) => {
-  router.push({ name: 'SongDetail', params: { id: String(songId) } })
+const handleBack = () => {
+  router.back()
+}
+
+const handleSongClick = (id: number) => {
+  if (filters.searchType === 'song') {
+    router.push({ name: 'SongDetail', params: { id: String(id) } })
+  } else if (filters.searchType === 'playlist') {
+    router.push({ name: 'PlaylistDetail', params: { id: String(id) } })
+  } else if (filters.searchType === 'singer') {
+    router.push({ name: 'UserDetail', params: { id: String(id) } })
+  }
 }
 
 const formatPrice = (price: any) => {
@@ -174,6 +247,60 @@ const formatPrice = (price: any) => {
   return `¥${priceNum.toFixed(2)}`
 }
 
+const getSearchPlaceholder = () => {
+  if (filters.searchType === 'song') return '搜索歌曲'
+  if (filters.searchType === 'playlist') return '搜索歌单'
+  if (filters.searchType === 'singer') return '搜索歌手'
+  return '搜索内容'
+}
+
+const getSearchTypeText = () => {
+  if (filters.searchType === 'song') return '歌曲'
+  if (filters.searchType === 'playlist') return '歌单'
+  if (filters.searchType === 'singer') return '歌手'
+  return '内容'
+}
+
+const getItemKey = (item: any) => {
+  if (filters.searchType === 'song') return item.song_id
+  if (filters.searchType === 'playlist') return item.playlist_id
+  if (filters.searchType === 'singer') return item.user_id
+  return null
+}
+
+const getItemId = (item: any) => {
+  if (filters.searchType === 'song') return item.song_id
+  if (filters.searchType === 'playlist') return item.playlist_id
+  if (filters.searchType === 'singer') return item.user_id
+  return null
+}
+
+const getItemCover = (item: any) => {
+  if (filters.searchType === 'song') return item.song_cover
+  if (filters.searchType === 'playlist') return item.playlist_cover
+  if (filters.searchType === 'singer') return item.user_avatar
+  return null
+}
+
+const getItemName = (item: any) => {
+  if (filters.searchType === 'song') return item.song_name
+  if (filters.searchType === 'playlist') return item.playlist_name
+  if (filters.searchType === 'singer') return item.user_name
+  return ''
+}
+
+const getItemCreator = (item: any) => {
+  if (filters.searchType === 'song') return item.song_singer_name
+  if (filters.searchType === 'playlist') return item.playlist_creator_name
+  if (filters.searchType === 'singer') return `粉丝: ${item.followers_count}`
+  return ''
+}
+
+const getItemPrice = (item: any) => {
+  if (filters.searchType === 'song') return item.song_price
+  return null
+}
+
 watch(
   () => route.query,
   () => {
@@ -181,6 +308,23 @@ watch(
     fetchSongs(pagination.page)
   },
   { immediate: true }
+)
+
+// 监听搜索类型变化，确保切换标签时重新加载数据
+watch(
+  () => filters.searchType,
+  (newType, oldType) => {
+    // 只有当搜索类型真正变化时才重新加载数据
+    if (newType !== oldType) {
+      // 重置页码到第一页
+      pagination.page = 1
+      // 如果有搜索关键词，重新搜索对应类型的数据
+      fetchSongs(1)
+      // 更新路由参数，保持搜索状态同步
+      const query = { ...route.query, searchType: newType, page: '1' }
+      router.push({ name: 'SongList', query })
+    }
+  }
 )
 </script>
 
@@ -198,6 +342,11 @@ watch(
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+}
+
+.price-filters {
+  display: flex;
+  gap: 12px;
 }
 
 .filter-actions {
@@ -253,6 +402,14 @@ watch(
 .price {
   color: #f56c6c;
   font-weight: bold;
+}
+
+.song-count {
+  color: #409eff;
+}
+
+.tag {
+  color: #67c23a;
 }
 
 .pagination-wrapper {

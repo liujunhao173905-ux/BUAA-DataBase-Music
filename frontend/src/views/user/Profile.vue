@@ -3,67 +3,79 @@
     <el-card class="profile-card">
       <template #header>
         <div class="card-header">
-          <span>个人资料</span>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <el-button type="default" @click="handleBack">
+              <el-icon><ArrowLeft /></el-icon> 返回
+            </el-button>
+            <span>个人资料</span>
+          </div>
         </div>
       </template>
       
       <div v-if="user" class="profile-content">
-        <div class="avatar-section">
-          <el-avatar
-            :size="120"
-            :src="user.user_avatar || ''"
-            class="user-avatar"
-          >
-            <el-icon><User /></el-icon>
-          </el-avatar>
-          <el-upload
-            class="avatar-uploader"
-            action="/api/users/profile/"
-            :show-file-list="false"
-            :before-upload="beforeUpload"
-            :on-success="handleAvatarSuccess"
-            :headers="uploadHeaders"
-          >
-            <el-button type="primary" size="small">更换头像</el-button>
-          </el-upload>
-        </div>
-        
-        <el-form
-          ref="formRef"
-          :model="form"
-          :rules="rules"
-          label-width="100px"
-          class="profile-form"
-        >
-          <el-form-item label="用户名">
-            <el-input v-model="user.user_name" disabled />
-          </el-form-item>
-          
-          <el-form-item label="用户类型">
-            <el-tag :type="getUserTypeTag(user.user_type)">
-              {{ user.user_type_display }}
-            </el-tag>
-          </el-form-item>
-          
-          <el-form-item label="手机号" prop="user_mobile">
-            <el-input
-              v-model="form.user_mobile"
-              placeholder="请输入手机号"
-              prefix-icon="Phone"
-            />
-          </el-form-item>
-          
-          <el-form-item label="注册时间">
-            <span>{{ formatDate(user.user_createtime) }}</span>
-          </el-form-item>
-          
-          <el-form-item>
-            <el-button type="primary" @click="handleUpdate" :loading="loading">
-              保存修改
-            </el-button>
-            <el-button @click="handleLogout">退出登录</el-button>
-          </el-form-item>
-        </el-form>
+        <!-- 内容标签页 -->
+        <el-tabs v-model="activeTab" class="profile-tabs">
+          <el-tab-pane label="个人资料" name="profile">
+            <div class="avatar-section">
+              <el-avatar
+                :size="120"
+                :src="user.user_avatar || ''"
+                class="user-avatar"
+                @error="handleAvatarError"
+              >
+                <el-icon><User /></el-icon>
+              </el-avatar>
+              <el-upload
+                class="avatar-uploader"
+                action="/api/users/profile/"
+                :method="'PUT'"
+                :show-file-list="false"
+                :before-upload="beforeUpload"
+                :on-success="handleAvatarSuccess"
+                :headers="uploadHeaders"
+              >
+                <el-button type="primary" size="small">更换头像</el-button>
+              </el-upload>
+            </div>
+            
+            <el-form
+              ref="formRef"
+              :model="form"
+              :rules="rules"
+              label-width="100px"
+              class="profile-form"
+            >
+              <el-form-item label="用户名">
+                <el-input v-model="user.user_name" disabled />
+              </el-form-item>
+              
+              <el-form-item label="用户类型">
+                <el-tag :type="getUserTypeTag(user.user_type)">
+                  {{ user.user_type_display }}
+                </el-tag>
+              </el-form-item>
+              
+              <el-form-item label="手机号" prop="user_mobile">
+                <el-input
+                  v-model="form.user_mobile"
+                  placeholder="请输入手机号"
+                  prefix-icon="Phone"
+                />
+              </el-form-item>
+              
+              <el-form-item label="注册时间">
+                <span>{{ formatDate(user.user_createtime) }}</span>
+              </el-form-item>
+              
+              <el-form-item>
+                <el-button type="primary" @click="handleUpdate" :loading="loading">
+                  保存修改
+                </el-button>
+                <el-button @click="handleLogout">退出登录</el-button>
+              </el-form-item>
+            </el-form>
+          </el-tab-pane>
+        </el-tabs>
       </div>
     </el-card>
   </div>
@@ -73,9 +85,10 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { User } from '@element-plus/icons-vue'
+import { User, ArrowLeft } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
-import { updateUserProfile, type UserInfo } from '@/api/user'
+// 导入API
+import { updateUserProfile } from '@/api/user'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -89,7 +102,7 @@ const form = reactive({
   user_mobile: '',
 })
 
-const validateMobile = (rule: any, value: any, callback: any) => {
+const validateMobile = (_rule: any, value: any, callback: any) => {
   if (value && !/^1[3-9]\d{9}$/.test(value)) {
     callback(new Error('请输入正确的手机号'))
   } else {
@@ -106,6 +119,14 @@ const rules: FormRules = {
 const uploadHeaders = computed(() => ({
   Authorization: `Bearer ${authStore.token}`,
 }))
+
+// 处理头像加载失败
+const handleAvatarError = () => {
+  ElMessage.warning('头像加载失败，显示默认头像')
+}
+
+// 当前激活的标签页
+const activeTab = ref('profile')
 
 onMounted(() => {
   if (user.value) {
@@ -137,11 +158,11 @@ const beforeUpload = (file: File) => {
   return true
 }
 
-const handleAvatarSuccess = (response: any) => {
-  if (response.user) {
-    authStore.updateUser(response.user)
-    ElMessage.success('头像上传成功')
-  }
+const handleAvatarSuccess = (response: any, file: any) => {
+  // 处理响应数据，确保用户信息格式正确
+  const userInfo = response.user || response
+  authStore.updateUser(userInfo)
+  ElMessage.success('头像更新成功')
 }
 
 const handleUpdate = async () => {
@@ -151,9 +172,9 @@ const handleUpdate = async () => {
     if (valid) {
       loading.value = true
       try {
-        const response = await updateUserProfile(form)
-        if (response.user) {
-          authStore.updateUser(response.user)
+        const user = await updateUserProfile(form)
+        if (user) {
+          authStore.updateUser(user)
           ElMessage.success('更新成功')
         }
       } catch (error) {
@@ -163,6 +184,11 @@ const handleUpdate = async () => {
       }
     }
   })
+}
+
+// 返回上一页
+const handleBack = () => {
+  router.back()
 }
 
 const handleLogout = () => {
@@ -215,6 +241,18 @@ const handleLogout = () => {
 .profile-form {
   max-width: 600px;
   margin: 0 auto;
+}
+
+/* 标签页样式 */
+.profile-tabs {
+  margin-top: 20px;
+}
+
+
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 0 10px;
+  }
 }
 </style>
 

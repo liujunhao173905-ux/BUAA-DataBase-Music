@@ -10,6 +10,9 @@ class UserSerializer(serializers.ModelSerializer):
     """用户序列化器"""
     password = serializers.CharField(write_only=True, required=False)
     user_type_display = serializers.CharField(source='get_user_type_display', read_only=True)
+    user_avatar = serializers.ImageField(use_url=True, required=False)
+    user_createtime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
+    date_joined = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     
     class Meta:
         model = User
@@ -81,6 +84,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
     user_type_display = serializers.CharField(source='get_user_type_display', read_only=True)
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
+    user_avatar = serializers.ImageField(use_url=True)
+    user_createtime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
+    date_joined = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     
     class Meta:
         model = User
@@ -104,6 +110,7 @@ class FollowSerializer(serializers.ModelSerializer):
     """关注序列化器"""
     follower_name = serializers.CharField(source='follower.user_name', read_only=True)
     following_name = serializers.CharField(source='following.user_name', read_only=True)
+    follow_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     
     class Meta:
         model = Follow
@@ -114,6 +121,7 @@ class FollowSerializer(serializers.ModelSerializer):
 class LoginLogSerializer(serializers.ModelSerializer):
     """登录日志序列化器"""
     log_user_type_display = serializers.CharField(source='get_log_user_type_display', read_only=True)
+    log_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     
     class Meta:
         model = LoginLog

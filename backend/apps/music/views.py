@@ -17,17 +17,17 @@ class SongViewSet(viewsets.ModelViewSet):
     """歌曲视图集"""
     queryset = Song.objects.all()
     serializer_class = SongSerializer
+    lookup_field = 'song_id'
     
     def get_queryset(self):
         """根据用户类型和权限返回不同的查询集"""
         queryset = Song.objects.select_related('song_singer').all()
         
-        # 搜索功能
+        # 搜索功能 - 仅按歌曲名搜索
         search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(
-                Q(song_name__icontains=search) |
-                Q(song_singer__user_name__icontains=search)
+                Q(song_name__icontains=search)
             )
         
         # 按歌手筛选
@@ -61,6 +61,12 @@ class SongViewSet(viewsets.ModelViewSet):
             return SongCreateSerializer
         return SongSerializer
     
+    def get_serializer_context(self):
+        """将请求对象添加到序列化器上下文中"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
     def get_permissions(self):
         """权限控制"""
         if self.action in ['list', 'retrieve']:
@@ -73,19 +79,28 @@ class SongViewSet(viewsets.ModelViewSet):
             # 更新和删除需要歌手权限（只能操作自己的歌曲）或管理员权限
             return [permissions.IsAuthenticated()]
     
+    def get_object(self):
+        """获取单个对象，确保歌手可以删除自己的任何歌曲"""
+        # 对于删除操作，绕过get_queryset的过滤，确保能找到自己的歌曲
+        if self.action == 'destroy':
+            try:
+                song_id = self.kwargs.get('song_id') or self.kwargs.get('pk')
+                if self.request.user.user_type == 2:
+                    # 管理员可以获取任何歌曲
+                    return Song.objects.get(song_id=song_id)
+                else:
+                    # 普通用户只能获取自己的歌曲
+                    return Song.objects.get(song_id=song_id, song_singer=self.request.user)
+            except Song.DoesNotExist:
+                from rest_framework.exceptions import NotFound
+                raise NotFound(detail='歌曲不存在或无权访问')
+        
+        # 其他操作使用默认的get_object方法
+        return super().get_object()
+    
     def perform_create(self, serializer):
-        """创建歌曲，自动创建审核记录"""
-        song = serializer.save()
-        # 创建审核记录
-        CheckSongLog.objects.create(
-            check_song=song,
-            check_song_name=song.song_name,
-            check_song_cover=str(song.song_cover) if song.song_cover else '',
-            check_song_file=str(song.song_file),
-            check_song_duration=song.song_duration,
-            check_song_price=song.song_price,
-            check_status=0  # 待审核
-        )
+        """创建歌曲"""
+        serializer.save()
     
     def perform_update(self, serializer):
         """更新歌曲（需要重新审核）"""
@@ -172,6 +187,11 @@ class SongViewSet(viewsets.ModelViewSet):
             )
         
         songs = Song.objects.filter(song_singer=request.user)
+        # 添加分页支持
+        page = self.paginate_queryset(songs)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(songs, many=True)
         return Response(serializer.data)
     
@@ -179,7 +199,8 @@ class SongViewSet(viewsets.ModelViewSet):
     def starred(self, request):
         """获取当前用户收藏的歌曲"""
         star_songs = StarSong.objects.filter(user=request.user).select_related('song')
-        songs = [star_song.song for star_song in star_songs]
+        # 只返回已审核的歌曲
+        songs = [star_song.song for star_song in star_songs if star_song.song.is_active]
         serializer = self.get_serializer(songs, many=True)
         return Response(serializer.data)
     
@@ -187,7 +208,8 @@ class SongViewSet(viewsets.ModelViewSet):
     def bought(self, request):
         """获取当前用户购买的歌曲"""
         buy_songs = BuySong.objects.filter(user=request.user).select_related('song')
-        songs = [buy_song.song for buy_song in buy_songs]
+        # 只返回已审核的歌曲
+        songs = [buy_song.song for buy_song in buy_songs if buy_song.song.is_active]
         serializer = self.get_serializer(songs, many=True)
         return Response(serializer.data)
 
@@ -251,5 +273,6 @@ class SongStatisticsView(APIView):
                     for song in songs
                 ]
             })
+
 
 

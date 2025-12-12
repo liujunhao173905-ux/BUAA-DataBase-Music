@@ -1,6 +1,14 @@
 <template>
   <div class="user-detail-container">
     <el-card v-if="user">
+      <template #header>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <el-button type="default" @click="handleBack">
+            <el-icon><ArrowLeft /></el-icon> 返回
+          </el-button>
+          <h2 style="margin: 0;">{{ user.user_type_display === '歌手' ? '歌手详情' : '用户详情' }}</h2>
+        </div>
+      </template>
       <div class="user-header">
         <el-avatar :size="100" :src="user.user_avatar" />
         <div class="user-info">
@@ -23,13 +31,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { getUserDetail, followUser, unfollowUser } from '@/api/user'
+import request from '@/api/request'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 const user = ref<any>(null)
@@ -43,9 +54,21 @@ onMounted(async () => {
 const loadUserDetail = async (userId: number) => {
   try {
     user.value = await getUserDetail(userId)
-    // TODO: 检查是否已关注
+    // 检查是否已关注
+    if (authStore.isAuthenticated && authStore.user?.user_id !== userId) {
+      checkFollowStatus(userId)
+    }
   } catch (error) {
     ElMessage.error('加载用户信息失败')
+  }
+}
+
+const checkFollowStatus = async (userId: number) => {
+  try {
+    const response = await request.get(`/users/${userId}/check-follow/`)
+    isFollowing.value = response.is_following
+  } catch (error) {
+    console.error('检查关注状态失败:', error)
   }
 }
 
@@ -69,6 +92,10 @@ const handleFollow = async () => {
   } catch (error: any) {
     ElMessage.error(error?.error || '操作失败')
   }
+}
+
+const handleBack = () => {
+  router.back()
 }
 </script>
 

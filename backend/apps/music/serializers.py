@@ -4,6 +4,7 @@
 from rest_framework import serializers
 from .models import Song, StarSong, BuySong
 from apps.users.serializers import UserProfileSerializer
+from apps.audit.models import CheckSongLog
 
 
 class SongSerializer(serializers.ModelSerializer):
@@ -14,12 +15,15 @@ class SongSerializer(serializers.ModelSerializer):
     is_bought = serializers.SerializerMethodField()
     star_count = serializers.SerializerMethodField()
     buy_count = serializers.SerializerMethodField()
+    song_price = serializers.DecimalField(max_digits=10, decimal_places=2, coerce_to_string=False, read_only=True)
+    song_createtime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
+    song_updatetime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     
     class Meta:
         model = Song
         fields = [
             'song_id', 'song_name', 'song_cover', 'song_file',
-            'song_duration', 'song_price', 'song_singer', 'song_singer_name',
+            'song_duration', 'song_price', 'song_singer_name',
             'song_singer_id', 'song_createtime', 'song_updatetime',
             'is_active', 'is_starred', 'is_bought', 'star_count', 'buy_count'
         ]
@@ -70,6 +74,7 @@ class SongCreateSerializer(serializers.ModelSerializer):
         validated_data['song_singer'] = request.user
         validated_data['is_active'] = False  # 新上传的歌曲需要审核
         song = Song.objects.create(**validated_data)
+        
         return song
 
 
@@ -77,6 +82,7 @@ class StarSongSerializer(serializers.ModelSerializer):
     """收藏歌曲序列化器"""
     song = SongSerializer(read_only=True)
     user_name = serializers.CharField(source='user.user_name', read_only=True)
+    star_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     
     class Meta:
         model = StarSong
@@ -88,6 +94,7 @@ class BuySongSerializer(serializers.ModelSerializer):
     """购买歌曲序列化器"""
     song = SongSerializer(read_only=True)
     user_name = serializers.CharField(source='user.user_name', read_only=True)
+    buy_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     
     class Meta:
         model = BuySong

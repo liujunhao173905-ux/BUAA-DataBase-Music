@@ -4,11 +4,13 @@
 from rest_framework import serializers
 from .models import Playlist, PlaylistSong, StarPlaylist
 from apps.music.serializers import SongSerializer
+from apps.audit.models import CheckPlaylistLog
 
 
 class PlaylistSongSerializer(serializers.ModelSerializer):
     """歌单歌曲序列化器"""
     song = SongSerializer(read_only=True)
+    add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     
     class Meta:
         model = PlaylistSong
@@ -24,6 +26,8 @@ class PlaylistSerializer(serializers.ModelSerializer):
     is_starred = serializers.SerializerMethodField()
     star_count = serializers.SerializerMethodField()
     songs = serializers.SerializerMethodField()
+    playlist_createtime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
+    playlist_updatetime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     
     class Meta:
         model = Playlist
@@ -61,7 +65,8 @@ class PlaylistCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Playlist
-        fields = ['playlist_name', 'playlist_cover', 'playlist_intro']
+        fields = ['playlist_id', 'playlist_name', 'playlist_cover', 'playlist_intro']
+        read_only_fields = ['playlist_id']
     
     def create(self, validated_data):
         """创建歌单，自动设置为当前用户"""
@@ -72,6 +77,7 @@ class PlaylistCreateSerializer(serializers.ModelSerializer):
         validated_data['playlist_creator'] = request.user
         validated_data['is_active'] = False  # 新创建的歌单需要审核
         playlist = Playlist.objects.create(**validated_data)
+        
         return playlist
 
 
@@ -79,6 +85,7 @@ class StarPlaylistSerializer(serializers.ModelSerializer):
     """收藏歌单序列化器"""
     playlist = PlaylistSerializer(read_only=True)
     user_name = serializers.CharField(source='user.user_name', read_only=True)
+    star_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     
     class Meta:
         model = StarPlaylist

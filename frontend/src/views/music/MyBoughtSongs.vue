@@ -1,13 +1,22 @@
 <template>
   <div class="my-bought-songs">
-    <div style="margin-bottom: 20px;">
-      <router-link to="/home" style="text-decoration: none; margin-right: 20px;">
-        <h1 style="display: inline-block; margin: 0; color: #409eff;">音乐平台</h1>
-      </router-link>
-      <el-page-header content="我的购买" @back="handleBack" />
-    </div>
+    <router-link to="/home" style="text-decoration: none; margin-right: 20px;">
+      <h1 style="display: inline-block; margin: 0; color: #409eff; margin-bottom: 20px;">音乐平台</h1>
+    </router-link>
     
-    <el-card class="song-card" v-loading="loading">
+    <el-card class="bought-songs-card">
+      <template #header>
+        <div class="card-header">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <el-button type="default" @click="handleBack">
+              <el-icon><ArrowLeft /></el-icon> 返回
+            </el-button>
+            <h2>我的购买</h2>
+          </div>
+        </div>
+      </template>
+      
+      <div class="song-card" v-loading="loading">
       <div v-if="songs.length > 0" class="song-list">
         <el-table
           :data="songs"
@@ -48,7 +57,8 @@
       </div>
       
       <el-empty v-else description="暂无购买歌曲" />
-    </el-card>
+    </div>
+  </el-card>
   </div>
 </template>
 
@@ -56,10 +66,8 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import request from '@/api/request'
-import { useAuthStore } from '@/stores/auth'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
-
-const authStore = useAuthStore()
 const router = useRouter()
 const loading = ref(false)
 const songs = ref<any[]>([])

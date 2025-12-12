@@ -28,8 +28,16 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item @click="$router.push('/profile')">个人资料</el-dropdown-item>
-                  <el-dropdown-item @click="$router.push('/my/starred')">我的收藏</el-dropdown-item>
+                  <el-dropdown-item @click="$router.push('/my/playlists')">我的歌单</el-dropdown-item>
+                  <el-dropdown-item @click="$router.push('/music/create-playlist')">创建歌单</el-dropdown-item>
+                  <el-dropdown-item @click="$router.push('/my/starred')">我的收藏与关注</el-dropdown-item>
                   <el-dropdown-item @click="$router.push('/my/bought')">我的购买</el-dropdown-item>
+                  <el-dropdown-submenu v-if="authStore.isSinger" index="singer">
+                    <template #title>歌手中心</template>
+                    <el-dropdown-item @click="$router.push('/my/songs')">我的歌曲</el-dropdown-item>
+                    <el-dropdown-item @click="$router.push('/music/upload-song')">上传歌曲</el-dropdown-item>
+                  </el-dropdown-submenu>
+                  <el-dropdown-item v-if="authStore.isAdmin" @click="$router.push('/admin/dashboard')">管理员面板</el-dropdown-item>
                   <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -99,7 +107,7 @@ const loadSongs = async () => {
         page_size: 12
       }
     })
-    songs.value = response.results || response
+    songs.value = response?.results || response || []
   } catch (error) {
     ElMessage.error('加载歌曲失败')
   }

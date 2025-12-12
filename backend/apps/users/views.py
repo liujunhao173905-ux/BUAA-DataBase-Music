@@ -2,10 +2,11 @@
 用户视图
 实现用户注册、登录、资料管理等功能
 """
-from rest_framework import status, permissions
+from rest_framework import status, permissions, parsers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
@@ -24,18 +25,27 @@ class RegisterView(APIView):
     
     def post(self, request):
         """用户注册"""
-        serializer = UserRegisterSerializer(data=request.data)
+        # 复制请求数据，避免直接修改原始数据
+        request_data = request.data.copy()
+        desired_user_type = request_data.get('user_type', 0)
+        
+        # 如果用户注册的是歌手类型，先将其注册为普通用户，等待审核通过后再改为歌手
+        if desired_user_type == 1:
+            request_data['user_type'] = 0  # 先注册为普通用户
+        
+        serializer = UserRegisterSerializer(data=request_data)
         if serializer.is_valid():
             user = serializer.save()
-            # 如果是歌手类型，需要审核
-            if user.user_type == 1:
+            
+            # 如果用户期望注册为歌手类型，创建审核记录
+            if desired_user_type == 1:
                 from apps.audit.models import CheckUserLog
                 CheckUserLog.objects.create(
                     check_user=user,
                     check_user_name=user.user_name,
                     check_user_mobile=user.user_mobile or '',
                     check_user_avatar=str(user.user_avatar) if user.user_avatar else '',
-                    check_user_type=user.user_type,
+                    check_user_type=1,  # 记录期望的用户类型
                     check_status=0  # 待审核
                 )
             # 记录登录日志
@@ -115,6 +125,7 @@ class LoginView(APIView):
 class UserProfileView(APIView):
     """用户资料视图"""
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [parsers.JSONParser, parsers.MultiPartParser]
     
     def get(self, request):
         """获取当前用户资料"""
@@ -148,6 +159,46 @@ class UserDetailView(APIView):
                 {'error': '用户不存在'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+class SingerListView(APIView):
+    """歌手列表视图"""
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        """获取歌手列表，支持搜索和分页"""
+        from django.db.models import Q
+        from django.core.paginator import Paginator
+        
+        # 获取搜索参数
+        search = request.query_params.get('search', '')
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 20))
+        
+        # 构建查询集
+        queryset = User.objects.filter(user_type=1)
+        
+        # 搜索功能
+        if search:
+            queryset = queryset.filter(
+                Q(user_name__icontains=search)
+            )
+        
+        # 分页
+        paginator = Paginator(queryset, page_size)
+        page_obj = paginator.get_page(page)
+        
+        # 序列化数据
+        serializer = UserProfileSerializer(page_obj, many=True)
+        
+        # 返回结果
+        return Response({
+            'count': paginator.count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': paginator.num_pages,
+            'results': serializer.data
+        })
 
 
 class FollowView(APIView):
@@ -196,12 +247,30 @@ class FollowView(APIView):
             
             if follow:
                 follow.delete()
-                return Response({'message': '取消关注成功'}, status=status.HTTP_200_OK)
+                return Response(
+                    {'message': '取消关注成功'},
+                    status=status.HTTP_200_OK
+                )
             else:
                 return Response(
                     {'error': '未关注该用户'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+        except User.DoesNotExist:
+            return Response(
+                {'error': '用户不存在'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def get(self, request, user_id):
+        """检查是否已关注用户"""
+        try:
+            following = User.objects.get(user_id=user_id)
+            is_following = Follow.objects.filter(
+                follower=request.user,
+                following=following
+            ).exists()
+            return Response({'is_following': is_following}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response(
                 {'error': '用户不存在'},
@@ -242,5 +311,34 @@ class FollowingListView(APIView):
             return Response(
                 {'error': '用户不存在'},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class MyFollowingListView(APIView):
+    """获取当前用户的关注列表"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        """获取当前用户的关注列表"""
+        try:
+            # 获取当前用户
+            user = request.user
+            # 获取当前用户关注的所有用户
+            following = Follow.objects.filter(follower=user).select_related('following')
+            
+            # 分页处理
+            paginator = PageNumberPagination()
+            paginator.page_size = 10
+            result_page = paginator.paginate_queryset(following, request)
+            
+            # 提取关注的用户信息
+            following_users = [item.following for item in result_page]
+            serializer = UserProfileSerializer(following_users, many=True)
+            
+            return paginator.get_paginated_response(serializer.data)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
