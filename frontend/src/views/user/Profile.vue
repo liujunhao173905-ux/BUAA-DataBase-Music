@@ -19,7 +19,7 @@
             <div class="avatar-section">
               <el-avatar
                 :size="120"
-                :src="user.user_avatar || ''"
+                :src="avatarPreview"
                 class="user-avatar"
                 @error="handleAvatarError"
               >
@@ -27,11 +27,12 @@
               </el-avatar>
               <el-upload
                 class="avatar-uploader"
-                action="/api/users/profile/"
-                :method="'PUT'"
+                action=""
                 :show-file-list="false"
                 :before-upload="beforeUpload"
-                :on-success="handleAvatarSuccess"
+                :auto-upload="false"
+                :limit="1"
+                :on-change="handleAvatarChange"
                 :headers="uploadHeaders"
               >
                 <el-button type="primary" size="small">更换头像</el-button>
@@ -99,8 +100,11 @@ const loading = ref(false)
 const user = computed(() => authStore.user)
 
 const form = reactive({
+  user_avatar: null as File | null,
   user_mobile: '',
 })
+
+const avatarPreview = ref<string>(user.value?.user_avatar || '')  // 初始用后端头像
 
 const validateMobile = (_rule: any, value: any, callback: any) => {
   if (value && !/^1[3-9]\d{9}$/.test(value)) {
@@ -158,32 +162,38 @@ const beforeUpload = (file: File) => {
   return true
 }
 
-const handleAvatarSuccess = (response: any, file: any) => {
-  // 处理响应数据，确保用户信息格式正确
-  const userInfo = response.user || response
-  authStore.updateUser(userInfo)
-  ElMessage.success('头像更新成功')
+// 处理歌曲文件变化
+const handleAvatarChange = (file: any, _fileList: any[]) => {
+  if (file.raw) {
+    form.user_avatar = file.raw
+    avatarPreview.value = URL.createObjectURL(file.raw)
+    ElMessage.success('头像上传成功')
+  }
+  return false
 }
 
 const handleUpdate = async () => {
   if (!formRef.value) return
-  
-  await formRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true
-      try {
-        const user = await updateUserProfile(form)
-        if (user) {
-          authStore.updateUser(user)
-          ElMessage.success('更新成功')
-        }
-      } catch (error) {
-        // 错误已在request拦截器中处理
-      } finally {
-        loading.value = false
-      }
+  const valid = await formRef.value.validate()
+  if (!valid) return
+
+  loading.value = true
+  try {
+    const formDataToSend = new FormData()
+    formDataToSend.append('user_mobile', form.user_mobile)
+    if (form.user_avatar) {
+      formDataToSend.append('user_avatar', form.user_avatar)
     }
-  })
+    const user = await updateUserProfile(formDataToSend)
+    authStore.updateUser(user)
+    ElMessage.success('更新成功！')
+  } finally {
+    // 50ms 闪一下即走
+    setTimeout(() => {
+      loading.value = false
+      router.back()
+    }, 50)
+  }
 }
 
 // 返回上一页

@@ -55,8 +55,12 @@ export const getUserProfile = () => {
 }
 
 // 更新用户资料
-export const updateUserProfile = (data: Partial<UserInfo>) => {
-  return request.put<UserInfo>('/users/profile/', data)
+export const updateUserProfile = (formData: FormData) => {
+  return request.put<UserInfo>('/users/profile/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  }) as unknown as UserInfo
 }
 
 // 获取指定用户资料
