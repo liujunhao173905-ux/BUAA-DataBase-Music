@@ -25,7 +25,7 @@
           <div class="song-info">
             <h2>{{ song.song_name }}</h2>
             <p class="singer">歌手：{{ song.song_singer_name }}</p>
-            <p>时长：{{ song.song_duration || '未知' }}</p>
+            <p>时长：{{ songDurationText }}</p>
             <p>价格：{{ formatPrice(song.song_price) }}</p>
             <p>收藏：{{ song.star_count }} 次 · 购买：{{ song.buy_count }} 次</p>
 
@@ -78,6 +78,14 @@ const song = ref<any | null>(null)
 const loading = ref(false)
 const starLoading = ref(false)
 const buyLoading = ref(false)
+
+const songDurationText = computed(() => {
+  const total = song.value?.song_duration
+  if (!total || total <= 0) return '未知'
+  const m = Math.floor(total / 60)
+  const s = Math.floor(total % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+})
 
 const buyButtonText = computed(() => {
   if (!song.value) return '购买'

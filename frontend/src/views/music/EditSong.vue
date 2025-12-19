@@ -35,9 +35,9 @@
               </div>
             </template>
           </el-upload>
-          <div v-if="currentSongName" class="current-file-info">
+          <!-- <div v-if="currentSongName" class="current-file-info">
             当前歌曲：{{ currentSongName }}
-          </div>
+          </div> -->
         </el-form-item>
 
         <el-form-item label="歌曲封面">
@@ -58,12 +58,12 @@
               </div>
             </template>
           </el-upload>
-          <el-image v-if="currentCover" :src="currentCover" class="current-cover" fit="cover" />
+          <!-- <el-image v-if="currentCover" :src="currentCover" class="current-cover" fit="cover" /> -->
         </el-form-item>
 
-        <el-form-item label="歌曲时长" prop="song_duration" :rules="[{ required: true, message: '请输入歌曲时长', trigger: 'blur' }, { type: 'number', min: 1, message: '歌曲时长必须大于0秒', trigger: 'blur' }]">
+        <!-- <el-form-item label="歌曲时长" prop="song_duration" :rules="[{ required: true, message: '请输入歌曲时长', trigger: 'blur' }, { type: 'number', min: 1, message: '歌曲时长必须大于0秒', trigger: 'blur' }]">
           <el-input-number v-model="formData.song_duration" :min="1" placeholder="请输入歌曲时长（秒）" style="width: 100%;" />
-        </el-form-item>
+        </el-form-item> -->
 
         <el-form-item label="歌曲价格" prop="song_price" :rules="[{ type: 'number', min: 0, message: '歌曲价格不能为负数', trigger: 'blur' }]">
           <el-input-number v-model="formData.song_price" :min="0" :precision="2" :step="0.1" placeholder="请输入歌曲价格（元）" style="width: 100%;" />
@@ -94,6 +94,7 @@ const songFileList = ref<any[]>([])
 const coverFileList = ref<any[]>([])
 const currentCover = ref<string | null>(null)
 const currentSongName = ref<string | null>(null)
+  const duration = ref<number>(0)
 
 const formData = reactive({
   song_name: '',
@@ -105,6 +106,25 @@ const formData = reactive({
 
 // 获取歌曲ID
 const songId = ref<number>(Number(route.params.id))
+
+async function getAudioDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio()
+    const url   = URL.createObjectURL(file)
+
+    audio.addEventListener('loadedmetadata', () => {
+      resolve(Math.round(audio.duration)) // 仅秒数
+      URL.revokeObjectURL(url)
+    })
+    audio.addEventListener('error', () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('无法读取音频时长'))
+    })
+
+    audio.src = url
+    audio.load()
+  })
+}
 
 // 处理歌曲文件上传前的验证
 const handleSongBeforeUpload = (file: File) => {
@@ -189,7 +209,15 @@ const handleSubmit = async () => {
     if (formData.song_cover) {
       formDataToSend.append('song_cover', formData.song_cover)
     }
-    formDataToSend.append('song_duration', formData.song_duration.toString())
+    // formDataToSend.append('song_duration', formData.song_duration.toString())
+    if (formData.song_file) {
+      try {
+        duration.value = await getAudioDuration(formData.song_file)
+      } catch (e) {
+        duration.value = 0
+      }
+      formDataToSend.append('song_duration', duration.value.toString())
+    }
     formDataToSend.append('song_price', formData.song_price.toString())
 
     await updateSong(songId.value, formDataToSend)

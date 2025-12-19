@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from django.db.models import Q, Count
 from django.utils import timezone
 from .models import Song, StarSong, BuySong
-from .serializers import SongSerializer, SongCreateSerializer, StarSongSerializer, BuySongSerializer
+from .serializers import SongSerializer, SongCreateSerializer, SongUpdateSerializer, StarSongSerializer, BuySongSerializer
 from apps.users.models import LoginLog
 from apps.audit.models import CheckSongLog
 
@@ -59,6 +59,8 @@ class SongViewSet(viewsets.ModelViewSet):
         """根据操作选择不同的序列化器"""
         if self.action == 'create':
             return SongCreateSerializer
+        elif self.action == 'update':
+            return SongUpdateSerializer
         return SongSerializer
     
     def get_serializer_context(self):

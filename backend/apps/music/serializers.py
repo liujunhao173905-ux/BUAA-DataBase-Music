@@ -78,6 +78,38 @@ class SongCreateSerializer(serializers.ModelSerializer):
         return song
 
 
+class SongUpdateSerializer(serializers.ModelSerializer):
+    """歌曲更新序列化器（用于上传）"""
+    """歌曲封面，不传不修改，传 null 清空"""
+    song_cover = serializers.ImageField(required=False, allow_null=True)
+    song_file = serializers.FileField(required=False)
+    song_price = serializers.DecimalField(required=False, max_digits=10, decimal_places=2, min_value=0)
+    
+    class Meta:
+        model = Song
+        fields = [
+            'song_name', 'song_cover', 'song_file',
+            'song_duration', 'song_price'
+        ]
+    
+    def update(self, instance, validated_data):
+        """更新歌曲，自动设置为当前登录的歌手"""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError('需要登录')
+        
+        if request.user.user_type != 1:
+            raise serializers.ValidationError('只有歌手可以更新歌曲')
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        validated_data['is_active'] = False  # 需要重新审核
+
+        instance.save()
+        return instance
+
+
 class StarSongSerializer(serializers.ModelSerializer):
     """收藏歌曲序列化器"""
     song = SongSerializer(read_only=True)
