@@ -81,6 +81,30 @@ class PlaylistCreateSerializer(serializers.ModelSerializer):
         return playlist
 
 
+class PlaylistUpdateSerializer(serializers.ModelSerializer):
+    """歌单创建序列化器"""
+    playlist_cover = serializers.ImageField(required=False, allow_null=True)
+    
+    class Meta:
+        model = Playlist
+        fields = ['playlist_id', 'playlist_name', 'playlist_cover', 'playlist_intro']
+        read_only_fields = ['playlist_id']
+    
+    def upadte(self, instance, validated_data):
+        """创建歌单，自动设置为当前用户"""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError('需要登录')
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        validated_data['is_active'] = False  # 新创建的歌单需要审核
+        
+        instance.save()
+        return instance
+
+
 class StarPlaylistSerializer(serializers.ModelSerializer):
     """收藏歌单序列化器"""
     playlist = PlaylistSerializer(read_only=True)

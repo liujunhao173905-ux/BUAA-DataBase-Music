@@ -68,6 +68,26 @@
                 </el-checkbox-group>
               </div>
             </el-collapse-item>
+            <el-collapse-item title="从购买歌曲中选择" name="2">
+              <div v-if="boughtSongsLoading" class="loading-container">
+                <el-skeleton :rows="3" animated />
+              </div>
+              <div v-else-if="boughtSongs.length === 0" class="empty-container">
+                <el-empty description="暂无购买歌曲" />
+              </div>
+              <div v-else class="bought-songs-container">
+                <el-checkbox-group v-model="selectedSongs">
+                  <div v-for="song in boughtSongs" :key="song.song_id" class="song-item">
+                    <el-checkbox :label="song.song_id">
+                      <div class="song-info">
+                        <div class="song-name">{{ song.song_name }}</div>
+                        <div class="song-singer">{{ song.song_singer_name }}</div>
+                      </div>
+                    </el-checkbox>
+                  </div>
+                </el-checkbox-group>
+              </div>
+            </el-collapse-item>
           </el-collapse>
         </el-form-item>
 
@@ -103,7 +123,11 @@ const formData = reactive({
 const starredSongs = ref<any[]>([])
 const starredSongsLoading = ref(false)
 const selectedSongs = ref<number[]>([])
-const activeNames = ref(['1'])
+const activeNames = ref(['1', '2'])
+
+// 购买歌曲相关
+const boughtSongs = ref<any[]>([])
+const boughtSongsLoading = ref(false)
 
 // 处理封面上传前的验证
 const handleBeforeUpload = (file: File) => {
@@ -143,6 +167,20 @@ const fetchStarredSongs = async () => {
     console.error('Failed to fetch starred songs:', error)
   } finally {
     starredSongsLoading.value = false
+  }
+}
+
+// 获取用户购买的歌曲
+const fetchBoughtSongs = async () => {
+  boughtSongsLoading.value = true
+  try {
+    const response = await request.get('/music/songs/bought/')
+    boughtSongs.value = response
+  } catch (error) {
+    ElMessage.error('加载购买歌曲失败')
+    console.error('Failed to fetch bought songs:', error)
+  } finally {
+    boughtSongsLoading.value = false
   }
 }
 
@@ -202,6 +240,7 @@ const handleReset = () => {
 // 组件挂载时获取收藏歌曲
 onMounted(() => {
   fetchStarredSongs()
+  fetchBoughtSongs()
 })
 </script>
 

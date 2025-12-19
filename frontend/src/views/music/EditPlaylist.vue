@@ -27,6 +27,7 @@
             :auto-upload="false"
             :limit="1"
             :on-change="handleCoverChange"
+            :on-remove="handleCoverRemove"
           >
             <el-button type="primary">选择封面</el-button>
             <template #tip>
@@ -47,18 +48,18 @@
           />
         </el-form-item>
 
-        <el-form-item label="添加歌曲">
+        <el-form-item label="批量删除">
           <el-collapse v-model="activeNames">
-            <el-collapse-item title="从收藏歌曲中选择" name="1">
-              <div v-if="starredSongsLoading" class="loading-container">
+            <el-collapse-item title="从歌单歌曲中选择" name="1">
+              <div v-if="allSongsLoading" class="loading-container">
                 <el-skeleton :rows="3" animated />
               </div>
-              <div v-else-if="starredSongs.length === 0" class="empty-container">
-                <el-empty description="暂无收藏歌曲" />
+              <div v-else-if="allSongs.length === 0" class="empty-container">
+                <el-empty description="歌单中暂无歌曲" />
               </div>
-              <div v-else class="starred-songs-container">
+              <div v-else class="all-songs-container">
                 <el-checkbox-group v-model="selectedSongs">
-                  <div v-for="song in starredSongs" :key="song.song_id" class="song-item">
+                  <div v-for="song in allSongs" :key="song.song_id" class="song-item">
                     <el-checkbox :label="song.song_id">
                       <div class="song-info">
                         <div class="song-name">{{ song.song_name }}</div>
@@ -84,11 +85,12 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage, ElForm, ElFormItem } from 'element-plus'
+import { ElMessage, ElForm, ElFormItem, ElMessageBox } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
-import { getPlaylistDetail, updatePlaylist, addSongToPlaylist } from '@/api/music'
+import { getPlaylistDetail, updatePlaylist, addSongToPlaylist, removeSongFromPlaylist } from '@/api/music'
 import request from '@/api/request'
 import type { Playlist } from '@/api/music'
+import { fa } from 'element-plus/es/locales.mjs'
 
 const router = useRouter()
 const route = useRoute()
@@ -97,20 +99,28 @@ const submitting = ref(false)
 const fileList = ref<any[]>([])
 const currentCover = ref<string | null>(null)
 
+const originalData = reactive({
+  playlist_name: '',
+  playlist_intro: '',
+})
+
 const formData = reactive({
   playlist_name: '',
   playlist_intro: '',
   playlist_cover: null as File | null,
 })
 
-// 收藏歌曲相关
-const starredSongs = ref<any[]>([])
-const starredSongsLoading = ref(false)
+// 歌单歌曲相关
+const allSongs = ref<any[]>([])
+const allSongsLoading = ref(false)
 const selectedSongs = ref<number[]>([])
 const activeNames = ref(['1'])
 
 // 获取歌单ID
 const playlistId = ref<number>(Number(route.params.id))
+
+const needsReview0 = ref(false)
+const needsReview1 = ref(false)
 
 // 处理封面上传前的验证
 const handleBeforeUpload = (file: File) => {
@@ -133,6 +143,15 @@ const handleBeforeUpload = (file: File) => {
 const handleCoverChange = (file: any, _fileList: any[]) => {
   if (file.raw) {
     formData.playlist_cover = file.raw
+    needsReview0.value = true
+  }
+  return false
+}
+
+const handleCoverRemove = (file: any, _fileList: any[]) => {
+  if (_fileList.length === 0) {
+    formData.playlist_cover = null
+    needsReview0.value = false
   }
   return false
 }
@@ -142,7 +161,9 @@ const fetchPlaylistDetail = async () => {
   try {
     const playlist = await getPlaylistDetail(playlistId.value)
     formData.playlist_name = playlist.playlist_name
+    originalData.playlist_name = playlist.playlist_name
     formData.playlist_intro = playlist.playlist_intro || ''
+    originalData.playlist_intro = playlist.playlist_intro || ''
     if (playlist.playlist_cover) {
       currentCover.value = playlist.playlist_cover
     }
@@ -153,16 +174,30 @@ const fetchPlaylistDetail = async () => {
 }
 
 // 获取用户收藏的歌曲
-const fetchStarredSongs = async () => {
-  starredSongsLoading.value = true
+// const fetchStarredSongs = async () => {
+//   starredSongsLoading.value = true
+//   try {
+//     const response = await request.get('/music/songs/starred/')
+//     starredSongs.value = response
+//   } catch (error) {
+//     ElMessage.error('加载收藏歌曲失败')
+//     console.error('Failed to fetch starred songs:', error)
+//   } finally {
+//     starredSongsLoading.value = false
+//   }
+// }
+
+// 获取歌单中的全部歌曲
+const fetchAllSongs = async () => {
+  allSongsLoading.value = true
   try {
-    const response = await request.get('/music/songs/starred/')
-    starredSongs.value = response
+    const response = await request.get(`/playlists/${playlistId.value}/get_songs`)
+    allSongs.value = response
   } catch (error) {
-    ElMessage.error('加载收藏歌曲失败')
-    console.error('Failed to fetch starred songs:', error)
+    ElMessage.error('加载歌单歌曲失败')
+    console.error('Failed to fetch all songs:', error)
   } finally {
-    starredSongsLoading.value = false
+    allSongsLoading.value = false
   }
 }
 
@@ -182,19 +217,39 @@ const handleSubmit = async () => {
     if (formData.playlist_cover) {
       formDataToSend.append('playlist_cover', formData.playlist_cover)
     }
+    
+    if (formData.playlist_name !== originalData.playlist_name || formData.playlist_intro !== originalData.playlist_intro) {
+      needsReview1.value = true
+    }
+    else {
+      needsReview1.value = false
+    }
 
-    // 更新歌单
-    await updatePlaylist(playlistId.value, formDataToSend as any)
+    // console.log('debug: ', formData.playlist_cover, needsReview0, needsReview1)
+
+    if (needsReview0.value || needsReview1.value) {
+      // 弹出提示框
+      await ElMessageBox.confirm('歌单信息有变更，需要重新审核。确认提交吗？', '提示', {
+        confirmButtonText: '确认',
+        cancelButtonText: '返回继续修改',
+        type: 'warning',
+      })
+    }
+
+    if (needsReview0.value || needsReview1.value) {
+      // 更新歌单
+      await updatePlaylist(playlistId.value, formDataToSend as any)
+    }
     
     // 添加选中的歌曲到歌单
     if (selectedSongs.value.length > 0) {
       // 使用 Promise.all 并行添加歌曲
       await Promise.all(
-        selectedSongs.value.map(songId => addSongToPlaylist(playlistId.value, songId))
+        selectedSongs.value.map(songId => removeSongFromPlaylist(playlistId.value, songId))
       )
     }
     
-    ElMessage.success('歌单修改成功！歌单将在审核通过后更新')
+    ElMessage.success('歌单修改成功！')
     router.push('/my/playlists')
   } catch (error) {
     ElMessage.error('歌单修改失败，请重试')
@@ -223,7 +278,8 @@ const handleReset = () => {
 // 组件挂载时获取歌单详情和收藏歌曲
 onMounted(() => {
   fetchPlaylistDetail()
-  fetchStarredSongs()
+  // fetchStarredSongs()
+  fetchAllSongs()
 })
 </script>
 
@@ -259,7 +315,15 @@ onMounted(() => {
   margin-top: 10px;
 }
 
-.starred-songs-container {
+/* .starred-songs-container {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  padding: 10px;
+} */
+
+.all-songs-container {
   max-height: 300px;
   overflow-y: auto;
   border: 1px solid #ebeef5;

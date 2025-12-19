@@ -65,7 +65,7 @@ const loadUserDetail = async (userId: number) => {
 
 const checkFollowStatus = async (userId: number) => {
   try {
-    const response = await request.get(`/users/${userId}/check-follow/`)
+    const response = await request.get(`/users/${userId}/follow/`)
     isFollowing.value = response.is_following
   } catch (error) {
     console.error('检查关注状态失败:', error)

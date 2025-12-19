@@ -8,8 +8,10 @@ from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, F, Max
 from .models import Playlist, PlaylistSong, StarPlaylist
 from .serializers import (
+    SongSerializer,
     PlaylistSerializer, 
     PlaylistCreateSerializer,
+    PlaylistUpdateSerializer,
     PlaylistSongSerializer,
     StarPlaylistSerializer
 )
@@ -77,6 +79,8 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         """根据操作选择不同的序列化器"""
         if self.action == 'create':
             return PlaylistCreateSerializer
+        elif self.action == 'update':
+            return PlaylistUpdateSerializer
         return PlaylistSerializer
     
     def get_permissions(self):
@@ -194,6 +198,34 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
     
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def check_song(self, request, pk=None):
+        """检查某首歌曲是否在当前歌单中"""
+        song_id = request.query_params.get('song_id')
+        if not song_id:
+            return Response({'error': '需要提供 song_id'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            playlist = Playlist.objects.get(pk=pk)
+        except Playlist.DoesNotExist:
+            return Response({'error': '歌单不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        exists = PlaylistSong.objects.filter(playlist=playlist, song_id=song_id).exists()
+        return Response({'is_in_playlist': exists}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def get_songs(self, request, pk=None):
+        """获取当前歌单的所有歌曲"""
+        try:
+            playlistId = self.get_object().playlist_id
+            raw_songs = PlaylistSong.objects.filter(playlist_id=playlistId).select_related('song')
+            # 只返回已审核的歌曲
+            songs = [raw_song.song for raw_song in raw_songs if raw_song.song.is_active]
+            serializer = SongSerializer(songs, many=True)
+            return Response(serializer.data)
+        except Playlist.DoesNotExist:
+            return Response({'error': '歌单不存在'}, status=status.HTTP_404_NOT_FOUND)
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def star(self, request, pk=None):
         """收藏歌单"""

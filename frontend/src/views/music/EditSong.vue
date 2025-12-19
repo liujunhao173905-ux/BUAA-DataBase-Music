@@ -27,6 +27,7 @@
             :auto-upload="false"
             :limit="1"
             :on-change="handleSongChange"
+            :on-remove="handleSongRemove"
           >
             <el-button type="primary">重新上传歌曲</el-button>
             <template #tip>
@@ -50,6 +51,7 @@
             :auto-upload="false"
             :limit="1"
             :on-change="handleCoverChange"
+            :on-remove="handleCoverRemove"
           >
             <el-button type="primary">重新上传封面</el-button>
             <template #tip>
@@ -151,6 +153,13 @@ const handleSongChange = (file: any, _fileList: any[]) => {
   return false
 }
 
+const handleSongRemove = (file: any, _fileList: any[]) => {
+  if (_fileList.length === 0) {
+    formData.song_file = null
+  }
+  return false
+}
+
 // 处理封面上传前的验证
 const handleCoverBeforeUpload = (file: File) => {
   const isJPG = file.type === 'image/jpeg' || file.type === 'image/png'
@@ -172,6 +181,13 @@ const handleCoverBeforeUpload = (file: File) => {
 const handleCoverChange = (file: any, _fileList: any[]) => {
   if (file.raw) {
     formData.song_cover = file.raw
+  }
+  return false
+}
+
+const handleCoverRemove = (file: any, _fileList: any[]) => {
+  if (_fileList.length === 0) {
+    formData.song_cover = null
   }
   return false
 }

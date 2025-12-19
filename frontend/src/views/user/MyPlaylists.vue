@@ -14,7 +14,7 @@
       </template>
 
       <el-table :data="playlists" stripe style="width: 100%">
-        <el-table-column prop="playlist_id" label="歌单ID" width="100" />
+        <!-- <el-table-column prop="playlist_id" label="歌单ID" width="100" /> -->
         <el-table-column prop="playlist_name" label="歌单名称" min-width="200">
           <template #default="scope">
             <div class="playlist-info">

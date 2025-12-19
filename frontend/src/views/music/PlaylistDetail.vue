@@ -139,6 +139,18 @@ const toggleStar = async () => {
     router.push('/login')
     return
   }
+  if (authStore.user) {
+    // 不能收藏自己的歌单
+    if (playlist.value.playlist_creator === authStore.user.user_id) {
+      ElMessage.warning('不能收藏自己的歌单')
+      return
+    }
+  }
+  else {
+    ElMessage.warning('用户不存在')
+    return
+  }
+  
   starLoading.value = true
   try {
     // 确保playlistId是字符串类型
@@ -198,7 +210,7 @@ const handlePlayAll = () => {
     return
   }
   // 这里可以添加播放全部歌曲的逻辑
-  ElMessage.success(`开始播放${playlist.value.playlist_name}中的全部歌曲`)
+  ElMessage.success(`开始播放 ${playlist.value.playlist_name} 中的全部歌曲`)
   // 例如：调用音乐播放器组件播放所有歌曲
   console.log('播放全部歌曲:', songs.value)
 }

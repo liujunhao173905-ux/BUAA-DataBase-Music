@@ -14,7 +14,7 @@
       </template>
 
       <el-table :data="songs" stripe style="width: 100%">
-        <el-table-column prop="song_id" label="歌曲ID" width="100" />
+        <!-- <el-table-column prop="song_id" label="歌曲ID" width="100" /> -->
         <el-table-column prop="song_name" label="歌曲名称" min-width="200">
           <template #default="scope">
             <div class="song-info">

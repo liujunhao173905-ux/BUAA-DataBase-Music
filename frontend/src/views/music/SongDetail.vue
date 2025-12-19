@@ -30,21 +30,30 @@
             <p>收藏：{{ song.star_count }} 次 · 购买：{{ song.buy_count }} 次</p>
 
             <div class="action-buttons">
-              <el-button
-                type="warning"
-                :loading="starLoading"
-                @click="handleToggleStar"
-              >
-                {{ song.is_starred ? '取消收藏' : '收藏歌曲' }}
-              </el-button>
-              <el-button
-                type="primary"
-                :disabled="song.is_bought"
-                :loading="buyLoading"
-                @click="handleBuySong"
-              >
-                {{ song.is_bought ? '已购买' : buyButtonText }}
-              </el-button>
+              <div v-if="song.is_active">
+                <el-button
+                  type="warning"
+                  :loading="starLoading"
+                  @click="handleToggleStar"
+                >
+                  {{ song.is_starred ? '取消收藏' : '收藏歌曲' }}
+                </el-button>
+                <el-button
+                  type="primary"
+                  :disabled="song.is_bought"
+                  :loading="buyLoading"
+                  @click="handleBuySong"
+                >
+                  {{ song.is_bought ? '已购买' : buyButtonText }}
+                </el-button>
+                <el-button
+                  type="info"
+                  :loading="playlistLoading"
+                  @click="openPlaylistDialog"
+                >
+                  {{ '加入歌单' }}
+                </el-button>
+              </div>
             </div>
 
             <audio
@@ -60,6 +69,25 @@
       <el-empty v-else-if="!loading" description="未找到歌曲" />
     </el-card>
   </div>
+
+  <el-dialog
+    v-model="playlistDialogVisible"
+    title="加入歌单"
+    width="500px"
+    @opened="fetchUserPlaylists"
+  >
+    <div v-loading="playlistLoading">
+      <el-checkbox-group v-model="selectedPlaylistIds">
+        <div v-for="p in userPlaylists" :key="p.playlist_id" class="playlist-item">
+          <el-checkbox :label="p.playlist_id">{{ p.playlist_name }}</el-checkbox>
+        </div>
+      </el-checkbox-group>
+    </div>
+    <template #footer>
+      <el-button @click="playlistDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="confirmJoinPlaylists">确认</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -78,6 +106,65 @@ const song = ref<any | null>(null)
 const loading = ref(false)
 const starLoading = ref(false)
 const buyLoading = ref(false)
+
+const playLists = ref<any[]>([])
+const playListsLoading = ref(false)
+
+const playlistDialogVisible = ref(false)
+const userPlaylists = ref<any[]>([])
+const playlistLoading = ref(false)
+const selectedPlaylistIds = ref<number[]>([])   // 当前弹窗内选中项
+
+const initialPlaylistIds = ref<number[]>([])   // 弹窗打开时已含歌曲的列表（用于 diff）
+
+// 打开弹窗 + 加载用户歌单 + 默认选中含当前歌曲的列表
+const openPlaylistDialog = () => {
+  playlistDialogVisible.value = true
+  selectedPlaylistIds.value = []
+  initialPlaylistIds.value = []
+}
+
+const fetchUserPlaylists = async () => {
+  playlistLoading.value = true
+  try {
+    const res = await request.get('/playlists/my_playlists/')
+    userPlaylists.value = res.data.playlists
+    // 并行检查每个歌单是否已含当前歌曲
+    const checks = await Promise.all(
+      userPlaylists.value.map(async p => {
+        return request.get(`/playlists/${p.playlist_id}/check_song/?song_id=${song.value.song_id}`)
+          .then(r => ({ id: p.playlist_id, in: r.is_in_playlist }))
+      })
+    )
+    checks.filter(i => i.in).forEach(i => initialPlaylistIds.value.push(i.id))
+    selectedPlaylistIds.value = [...initialPlaylistIds.value]   // 默认勾选
+  } catch (e) {
+    ElMessage.error('加载歌单失败')
+    console.error('加载歌单失败：', e)
+  } finally {
+    playlistLoading.value = false
+  }
+}
+
+// 确认：只发送变化量（新增/删除）
+const confirmJoinPlaylists = async () => {
+  const init = new Set(initialPlaylistIds.value)
+  const curr = new Set(selectedPlaylistIds.value)
+
+  const toAdd = [...curr].filter(id => !init.has(id))   // 新增
+  const toDel = [...init].filter(id => !curr.has(id))   // 删除
+
+  try {
+    await Promise.all([
+      ...toAdd.map(id => request.post(`/playlists/${id}/add_song/`, { song_id: song.value.song_id })),
+      ...toDel.map(id => request.delete(`/playlists/${id}/remove_song/`, { data: { song_id: song.value.song_id } }))
+    ])
+    ElMessage.success('操作成功')
+    playlistDialogVisible.value = false
+  } catch (e) {
+    ElMessage.error('操作失败，请稍后重试')
+  }
+}
 
 const songDurationText = computed(() => {
   const total = song.value?.song_duration
@@ -107,6 +194,19 @@ const fetchSongDetail = async () => {
     loading.value = false
   }
 }
+
+// const fetchPlaylists = async () => {
+//   playListsLoading.value = true
+//   try {
+//     const response = await request.get('/music/songs/bought/')
+//     playLists.value = response
+//   } catch (error) {
+//     ElMessage.error('加载歌单列表失败')
+//     console.error('Failed to fetch playlists:', error)
+//   } finally {
+//     playListsLoading.value = false
+//   }
+// }
 
 const ensureLoggedIn = () => {
   if (authStore.isAuthenticated) return true
@@ -222,6 +322,14 @@ watch(
 .audio-player {
   width: 100%;
   margin-top: 20px;
+}
+
+.playlist-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.playlist-item:last-child {
+  border-bottom: none;
 }
 </style>
 

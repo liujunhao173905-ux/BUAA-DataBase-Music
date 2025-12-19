@@ -3,7 +3,7 @@
 实现用户注册、登录、资料管理等功能
 """
 from rest_framework import status, permissions, parsers
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
