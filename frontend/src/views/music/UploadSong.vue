@@ -57,9 +57,9 @@
           </el-upload>
         </el-form-item>
 
-        <el-form-item label="歌曲时长" prop="song_duration" :rules="[{ required: true, message: '请输入歌曲时长', trigger: 'blur' }, { type: 'number', min: 1, message: '歌曲时长必须大于0秒', trigger: 'blur' }]">
+        <!-- <el-form-item label="歌曲时长" prop="song_duration" :rules="[{ required: true, message: '请输入歌曲时长', trigger: 'blur' }, { type: 'number', min: 1, message: '歌曲时长必须大于0秒', trigger: 'blur' }]">
           <el-input-number v-model="formData.song_duration" :min="1" placeholder="请输入歌曲时长（秒）" style="width: 100%;" />
-        </el-form-item>
+        </el-form-item> -->
 
         <el-form-item label="歌曲价格" prop="song_price" :rules="[{ type: 'number', min: 0, message: '歌曲价格不能为负数', trigger: 'blur' }]">
           <el-input-number v-model="formData.song_price" :min="0" :precision="2" :step="0.1" placeholder="请输入歌曲价格（元）" style="width: 100%;" />
@@ -86,6 +86,7 @@ const formRef = ref<InstanceType<typeof ElForm> | null>(null)
 const submitting = ref(false)
 const songFileList = ref<any[]>([])
 const coverFileList = ref<any[]>([])
+const duration = ref<number>(0)
 
 const formData = reactive({
   song_name: '',
@@ -95,9 +96,28 @@ const formData = reactive({
   song_price: 0.00,
 })
 
+async function getAudioDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio()
+    const url   = URL.createObjectURL(file)
+
+    audio.addEventListener('loadedmetadata', () => {
+      resolve(Math.round(audio.duration)) // 仅秒数
+      URL.revokeObjectURL(url)
+    })
+    audio.addEventListener('error', () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('无法读取音频时长'))
+    })
+
+    audio.src = url
+    audio.load()
+  })
+}
+
 // 处理歌曲文件上传前的验证
 const handleSongBeforeUpload = (file: File) => {
-  const isValidType = ['audio/mpeg', 'audio/wav', 'audio/ogg'].includes(file.type)
+  const isValidType = ['audio/mpeg', 'audio/wav', 'audio/wave', 'audio/ogg'].includes(file.type)
   const isLt50M = file.size / 1024 / 1024 < 50
 
   if (!isValidType) {
@@ -161,7 +181,15 @@ const handleSubmit = async () => {
     if (formData.song_cover) {
       formDataToSend.append('song_cover', formData.song_cover)
     }
-    formDataToSend.append('song_duration', formData.song_duration.toString())
+    // formDataToSend.append('song_duration', formData.song_duration.toString())
+    if (formData.song_file) {
+      try {
+        duration.value = await getAudioDuration(formData.song_file)
+      } catch (e) {
+        duration.value = 0
+      }
+      formDataToSend.append('song_duration', duration.value.toString())
+    }
     formDataToSend.append('song_price', formData.song_price.toString())
 
     await uploadSong(formDataToSend)

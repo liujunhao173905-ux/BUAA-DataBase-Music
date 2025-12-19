@@ -17,7 +17,7 @@ class SongViewSet(viewsets.ModelViewSet):
     """歌曲视图集"""
     queryset = Song.objects.all()
     serializer_class = SongSerializer
-    lookup_field = 'song_id'
+    lookup_field = 'pk'
     
     def get_queryset(self):
         """根据用户类型和权限返回不同的查询集"""
