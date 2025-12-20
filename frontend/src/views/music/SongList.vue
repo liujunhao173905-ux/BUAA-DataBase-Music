@@ -58,16 +58,25 @@
           :md="6"
           :lg="4"
         >
-          <el-card class="song-card" @click="handleSongClick(getItemId(item))">
-            <el-image
-              :src="getItemCover(item) || ''"
-              fit="cover"
-              class="song-cover"
-            >
-              <template #error>
-                <div class="image-slot">暂无封面</div>
-              </template>
-            </el-image>
+          <el-card class="song-card" @click="handleSongClick(item)">
+            <div class="cover-container">
+              <el-image
+                :src="getItemCover(item) || ''"
+                fit="cover"
+                class="song-cover"
+              >
+                <template #error>
+                  <div class="image-slot">暂无封面</div>
+                </template>
+              </el-image>
+              <div 
+                v-if="filters.searchType === 'song'" 
+                class="play-overlay"
+                @click.stop="handlePlay(item)"
+              >
+                <el-icon><VideoPlay /></el-icon>
+              </div>
+            </div>
             <div class="song-info">
               <h3>{{ getItemName(item) }}</h3>
               <p>{{ getItemCreator(item) }}</p>
@@ -232,16 +241,29 @@ const handleBack = () => {
   router.back()
 }
 
-const handleSongClick = (item: any) => {
-  const id = getItemId(item)
-  if (filters.searchType === 'song') {
-    // Play song
+const handlePlay = (item: any) => {
+  if (item.song_id) {
     playerStore.setPlaylist(songs.value)
     playerStore.playSong(item)
+  }
+}
+
+const handleSongClick = (item: any) => {
+  if (filters.searchType === 'song') {
+    // Go to detail
+    if (item.song_id) {
+      router.push({ name: 'SongDetail', params: { id: String(item.song_id) } })
+    }
   } else if (filters.searchType === 'playlist') {
-    router.push({ name: 'PlaylistDetail', params: { id: String(id) } })
+    const id = item.playlist_id
+    if (id) {
+      router.push({ name: 'PlaylistDetail', params: { id: String(id) } })
+    }
   } else if (filters.searchType === 'singer') {
-    router.push({ name: 'UserDetail', params: { id: String(id) } })
+    const id = item.user_id
+    if (id) {
+      router.push({ name: 'UserDetail', params: { id: String(id) } })
+    }
   }
 }
 
@@ -369,9 +391,36 @@ watch(
   transform: translateY(-4px);
 }
 
-.song-cover {
+.cover-container {
+  position: relative;
   width: 100%;
   height: 200px;
+}
+
+.song-cover {
+  width: 100%;
+  height: 100%;
+}
+
+.play-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  color: white;
+  font-size: 40px;
+  backdrop-filter: blur(2px);
+}
+
+.song-card:hover .play-overlay {
+  opacity: 1;
 }
 
 .image-slot {
