@@ -51,6 +51,13 @@
         <span>我的购买</span>
       </div>
 
+      <div class="function-item" @click="$router.push('/my/report')">
+        <div class="icon-box chart">
+          <el-icon><DataAnalysis /></el-icon>
+        </div>
+        <span>听歌报告</span>
+      </div>
+
       <div class="function-item" v-if="authStore.isAdmin" @click="$router.push('/admin/dashboard')">
         <div class="icon-box tool">
           <el-icon><Tools /></el-icon>
@@ -103,7 +110,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ArrowRight, StarFilled, User, Collection, Money, Tools, Setting, Service, InfoFilled, SwitchButton } from '@element-plus/icons-vue'
+import { ArrowRight, StarFilled, User, Collection, Money, Tools, Setting, Service, InfoFilled, SwitchButton, DataAnalysis } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const authStore = useAuthStore()
@@ -234,6 +241,7 @@ const handleLogout = () => {
 .star { background: linear-gradient(120deg, #f6d365 0%, #fda085 100%); }
 .book { background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%); }
 .coin { background: linear-gradient(120deg, #f093fb 0%, #f5576c 100%); }
+.chart { background: linear-gradient(120deg, #a18cd1 0%, #fbc2eb 100%); }
 .tool { background: linear-gradient(120deg, #4facfe 0%, #00f2fe 100%); }
 
 .function-item span {

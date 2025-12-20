@@ -116,3 +116,38 @@ class BuySong(models.Model):
     def __str__(self):
         return f'{self.user.user_name} 购买 {self.song.song_name}'
 
+
+class PlayHistory(models.Model):
+    """
+    用户播放记录表
+    记录用户的听歌历史，用于生成统计报告
+    """
+    history_id = models.AutoField(primary_key=True, verbose_name='播放记录ID')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='play_history',
+        verbose_name='用户',
+        db_column='user_id'
+    )
+    song = models.ForeignKey(
+        Song,
+        on_delete=models.CASCADE,
+        related_name='play_history',
+        verbose_name='歌曲',
+        db_column='song_id'
+    )
+    play_time = models.DateTimeField(auto_now_add=True, verbose_name='播放时间')
+    play_duration = models.IntegerField(default=0, verbose_name='播放时长(秒)')
+    
+    class Meta:
+        db_table = 'play_history'
+        verbose_name = '播放记录'
+        verbose_name_plural = '播放记录'
+        ordering = ['-play_time']
+        indexes = [
+            models.Index(fields=['user', 'play_time']),
+        ]
+    
+    def __str__(self):
+        return f'{self.user.user_name} 播放 {self.song.song_name}'

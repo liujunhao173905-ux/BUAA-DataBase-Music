@@ -41,6 +41,7 @@
           <li><router-link to="/admin/check-playlists">歌单审核</router-link></li>
           <li><router-link to="/admin/check-users">用户审核</router-link></li>
           <li><router-link to="/admin/check-history">审核历史</router-link></li>
+          <li><router-link to="/admin/check-login-logs">登录日志</router-link></li>
         </ul>
       </div>
     </div>

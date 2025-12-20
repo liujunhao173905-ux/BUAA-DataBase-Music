@@ -2,7 +2,7 @@
 用户视图
 实现用户注册、登录、资料管理等功能
 """
-from rest_framework import status, permissions, parsers
+from rest_framework import status, permissions, parsers, viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,7 +15,8 @@ from .serializers import (
     UserSerializer, 
     UserRegisterSerializer, 
     UserProfileSerializer,
-    FollowSerializer
+    FollowSerializer,
+    LoginLogSerializer
 )
 
 
@@ -342,3 +343,23 @@ class MyFollowingListView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
+class LoginLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    登录日志视图集
+    """
+    queryset = LoginLog.objects.all()
+    serializer_class = LoginLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = PageNumberPagination
+
+    def get_queryset(self):
+        """
+        根据用户类型过滤
+        管理员可以看到所有日志
+        普通用户只能看自己的（虽然一般不需要）
+        """
+        user = self.request.user
+        if user.user_type == 2:  # 管理员
+            return LoginLog.objects.all().order_by('-log_time')
+        return LoginLog.objects.filter(log_user=user).order_by('-log_time')

@@ -10,11 +10,58 @@
             <h2>我的歌曲</h2>
           </div>
           <div v-else></div> <!-- Spacer -->
-          <el-button type="primary" @click="handleUploadSong">上传歌曲</el-button>
+          <div class="actions">
+             <el-dropdown @command="handleExport">
+               <el-button>
+                 导出 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+               </el-button>
+               <template #dropdown>
+                 <el-dropdown-menu>
+                   <el-dropdown-item command="excel">导出 Excel</el-dropdown-item>
+                   <el-dropdown-item command="xml">导出 XML</el-dropdown-item>
+                 </el-dropdown-menu>
+               </template>
+             </el-dropdown>
+             
+             <el-upload
+               class="upload-demo"
+               action="#"
+               :show-file-list="false"
+               :before-upload="handleImport"
+               style="display: inline-block; margin-left: 10px;"
+             >
+               <el-button>导入 Excel/XML</el-button>
+             </el-upload>
+
+             <el-button style="margin-left: 10px;" @click="showExternalDialog = true">
+               从外部导入
+             </el-button>
+
+             <el-button type="primary" @click="handleUploadSong" style="margin-left: 10px;">上传歌曲</el-button>
+           </div>
         </div>
       </template>
 
-      <el-table :data="songs" stripe style="width: 100%">
+      <!-- 外部导入对话框 -->
+      <el-dialog v-model="showExternalDialog" title="从外部API导入" width="600px">
+         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <el-input v-model="externalKeyword" placeholder="输入歌名或歌手" @keyup.enter="handleExternalSearch" />
+            <el-button type="primary" @click="handleExternalSearch" :loading="externalLoading">搜索</el-button>
+         </div>
+         
+         <el-table :data="externalResults" v-loading="externalLoading" height="300" style="width: 100%">
+            <el-table-column property="name" label="歌名" />
+            <el-table-column property="singer" label="歌手" />
+            <el-table-column label="操作" width="100">
+               <template #default="scope">
+                  <el-button type="success" size="small" @click="importExternal(scope.row)">导入</el-button>
+               </template>
+            </el-table-column>
+         </el-table>
+      </el-dialog>
+
+      <el-table :data="songs" stripe style="width: 100%" @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="55" />
         <!-- <el-table-column prop="song_id" label="歌曲ID" width="100" /> -->
         <el-table-column prop="song_name" label="歌曲名称" min-width="200">
           <template #default="scope">
@@ -74,8 +121,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
-import { getMySongs, deleteSong } from '@/api/music'
+import { ArrowLeft, ArrowDown } from '@element-plus/icons-vue'
+import { getMySongs, deleteSong, exportSongs, importSongs, searchExternalSongs, importExternalSong } from '@/api/music'
 import type { Song } from '@/api/music'
 
 const props = defineProps<{
@@ -88,6 +135,88 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const loading = ref(false)
+const multipleSelection = ref<Song[]>([])
+
+// 外部导入相关
+const showExternalDialog = ref(false)
+const externalKeyword = ref('')
+const externalResults = ref<any[]>([])
+const externalLoading = ref(false)
+
+const handleSelectionChange = (val: Song[]) => {
+  multipleSelection.value = val
+}
+
+const handleExport = async (format: 'excel' | 'xml') => {
+  try {
+    const songIds = multipleSelection.value.map(song => song.song_id)
+    if (songIds.length === 0) {
+      // 询问是否导出所有
+      try {
+        await ElMessageBox.confirm('未选择歌曲，是否导出所有歌曲？', '提示', {
+          confirmButtonText: '导出所有',
+          cancelButtonText: '取消',
+          type: 'info'
+        })
+      } catch {
+        return // 用户取消
+      }
+    }
+    
+    const response = await exportSongs(format, songIds)
+    // Create blob link to download
+    const url = window.URL.createObjectURL(new Blob([response as any]))
+    const link = document.createElement('a')
+    link.href = url
+    const suffix = format === 'excel' ? 'xlsx' : 'xml'
+    const prefix = songIds.length > 0 ? 'selected_songs' : 'all_songs'
+    link.setAttribute('download', `${prefix}_export.${suffix}`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error) {
+    if (error !== 'cancel') {
+        ElMessage.error('导出失败')
+    }
+  }
+}
+
+const handleImport = async (file: any) => { 
+  try {
+    const res: any = await importSongs(file)
+    ElMessage.success(res.message || '导入成功')
+    fetchSongs()
+  } catch (error: any) {
+    // 错误已经在 request.ts 中处理了，但这里可能需要显示特定信息
+    // 如果是 400 错误，request.ts 会显示 error message
+    // 这里我们只是阻止默认上传行为
+  }
+  return false // 阻止自动上传
+}
+
+const handleExternalSearch = async () => {
+  if (!externalKeyword.value) return
+  externalLoading.value = true
+  try {
+    const res = await searchExternalSongs(externalKeyword.value)
+    externalResults.value = res
+  } catch (error) {
+    // Error handled in interceptor
+  } finally {
+    externalLoading.value = false
+  }
+}
+
+const importExternal = async (item: any) => {
+  try {
+    await importExternalSong(item)
+    ElMessage.success('导入成功')
+    fetchSongs()
+    showExternalDialog.value = false
+  } catch (error) {
+    // Error handled
+  }
+}
 
 // 格式化日期
 const formatDate = (dateString: string) => {

@@ -99,6 +99,45 @@ export const getMyBoughtSongs = (page: number = 1, pageSize: number = 10) => {
     })
 }
 
+// 记录播放历史
+export const recordPlay = (songId: number, duration: number) => {
+  return request.post('/music/record-play/', { song_id: songId, duration })
+}
+
+// 导出歌曲
+export const exportSongs = (format: 'excel' | 'xml', songIds?: number[]) => {
+  const params: any = { export_type: format }
+  if (songIds && songIds.length > 0) {
+    params.song_ids = songIds.join(',')
+  }
+  return request.get(`/music/export/`, {
+    params,
+    responseType: 'blob'
+  })
+}
+
+// 导入歌曲
+export const importSongs = (file: File) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post(`/music/import/`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+// 外部搜索
+export const searchExternalSongs = (keyword: string) => {
+  return request.get<any[]>(`/music/external/search/`, { params: { keyword } })
+}
+
+// 外部导入
+export const importExternalSong = (data: any) => {
+  return request.post(`/music/external/import/`, data)
+}
+
+
 // 获取我收藏的歌曲
 export const getMyStarredSongs = (page: number = 1, pageSize: number = 10) => {
   return request.get<{ count: number; results: Song[] }>(`/music/songs/starred/`, { params: { page, page_size: pageSize } })

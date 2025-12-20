@@ -7,6 +7,8 @@ from .views import (
     UserStatisticsView,
     MusicStatisticsView,
     PlaylistStatisticsView,
+    UserReportView,
+    ExportReportView,
 )
 
 urlpatterns = [
@@ -14,4 +16,6 @@ urlpatterns = [
     path('users/', UserStatisticsView.as_view(), name='user-statistics'),
     path('music/', MusicStatisticsView.as_view(), name='music-statistics'),
     path('playlists/', PlaylistStatisticsView.as_view(), name='playlist-statistics'),
+    path('report/export/', ExportReportView.as_view(), name='export-user-report'),
+    path('user-report/', UserReportView.as_view(), name='user-report'),
 ]

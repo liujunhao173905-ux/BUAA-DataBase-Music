@@ -7,10 +7,307 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import Q, Count
 from django.utils import timezone
-from .models import Song, StarSong, BuySong
+from .models import Song, StarSong, BuySong, PlayHistory
 from .serializers import SongSerializer, SongCreateSerializer, SongUpdateSerializer, StarSongSerializer, BuySongSerializer
 from apps.users.models import LoginLog
 from apps.audit.models import CheckSongLog
+import openpyxl
+import xml.etree.ElementTree as ET
+from django.http import HttpResponse
+from io import BytesIO
+
+
+class SongExportView(APIView):
+    """歌曲导出视图"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # 使用 export_type 替代 format，避免 DRF 内容协商冲突
+        format_type = request.query_params.get('export_type', 'excel')
+        # 兼容旧代码
+        if not request.query_params.get('export_type') and request.query_params.get('format'):
+            format_type = request.query_params.get('format')
+            
+        song_ids = request.query_params.get('song_ids') # 逗号分隔的ID字符串
+        
+        # 筛选逻辑：歌手只能导出自己的，管理员导出所有，普通用户不能导出
+        if request.user.user_type == 1: # 歌手
+            songs = Song.objects.filter(song_singer=request.user)
+        elif request.user.user_type == 2: # 管理员
+            songs = Song.objects.all()
+        else:
+            return Response({'error': '无权操作'}, status=status.HTTP_403_FORBIDDEN)
+            
+        # 如果指定了ID，进一步筛选
+        if song_ids:
+            try:
+                id_list = [int(id_str) for id_str in song_ids.split(',') if id_str.strip()]
+                songs = songs.filter(song_id__in=id_list)
+            except ValueError:
+                return Response({'error': '无效的歌曲ID格式'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if format_type == 'xml':
+            return self._export_xml(songs)
+        else:
+            return self._export_excel(songs)
+
+    def _export_excel(self, songs):
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "歌曲列表"
+        
+        headers = ['歌曲ID', '歌曲名', '歌手', '时长(秒)', '价格', '上架状态', '创建时间']
+        ws.append(headers)
+        
+        for song in songs:
+            ws.append([
+                song.song_id,
+                song.song_name,
+                song.song_singer.user_name,
+                song.song_duration,
+                song.song_price,
+                '已上架' if song.is_active else '未上架',
+                song.song_createtime.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+            
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        
+        response = HttpResponse(
+            buffer,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="songs_export_{timezone.now().strftime("%Y%m%d")}.xlsx"'
+        return response
+
+    def _export_xml(self, songs):
+        root = ET.Element("songs")
+        
+        for song in songs:
+            song_elem = ET.SubElement(root, "song")
+            ET.SubElement(song_elem, "id").text = str(song.song_id)
+            ET.SubElement(song_elem, "name").text = song.song_name
+            ET.SubElement(song_elem, "singer").text = song.song_singer.user_name
+            ET.SubElement(song_elem, "duration").text = str(song.song_duration)
+            ET.SubElement(song_elem, "price").text = str(song.song_price)
+            ET.SubElement(song_elem, "status").text = 'active' if song.is_active else 'inactive'
+            ET.SubElement(song_elem, "create_time").text = song.song_createtime.strftime('%Y-%m-%d %H:%M:%S')
+            
+        xml_str = ET.tostring(root, encoding='utf-8', method='xml')
+        
+        response = HttpResponse(xml_str, content_type='application/xml')
+        response['Content-Disposition'] = f'attachment; filename="songs_export_{timezone.now().strftime("%Y%m%d")}.xml"'
+        return response
+
+
+class SongImportView(APIView):
+    """歌曲导入视图"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if request.user.user_type not in [1, 2]:
+            return Response({'error': '无权操作'}, status=status.HTTP_403_FORBIDDEN)
+            
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'error': '请上传文件'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if file.name.endswith('.xlsx'):
+            return self._import_excel(file, request.user)
+        elif file.name.endswith('.xml'):
+            return self._import_xml(file, request.user)
+        else:
+            return Response({'error': '不支持的文件格式'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def _import_excel(self, file, user):
+        try:
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+            
+            success_count = 0
+            errors = []
+            
+            # 跳过表头，从第二行开始
+            for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), 2):
+                try:
+                    # 假设列顺序: Name, Singer, Duration, Price, Status, CreateTime
+                    # 我们主要导入 Name, Duration, Price
+                    
+                    song_name = row[0]
+                    duration = row[2]
+                    price = row[3]
+                    
+                
+                        # 创建新歌曲
+                    if user.user_type == 1:
+                        Song.objects.create(
+                            song_name=song_name,
+                            song_singer=user,
+                            song_duration=int(duration) if duration else 0,
+                            song_price=float(price) if price else 0,
+                            is_active=False,
+                            song_file='songs/placeholder.mp3' # 占位文件
+                        )
+                        success_count += 1
+                    else:
+                        errors.append(f"第{row_idx}行: 只有歌手可以创建歌曲")    
+                        
+                except Exception as e:
+                    errors.append(f"第{row_idx}行: 处理失败 - {str(e)}")
+            
+            return Response({
+                'message': f'导入完成，成功 {success_count} 条',
+                'errors': errors
+            })
+            
+        except Exception as e:
+            return Response({'error': f'Excel解析失败: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def _import_xml(self, file, user):
+        try:
+            tree = ET.parse(file)
+            root = tree.getroot()
+            
+            success_count = 0
+            errors = []
+            
+            for idx, song_elem in enumerate(root.findall('song'), 1):
+                try:
+                    song_id_elem = song_elem.find('id')
+                    name_elem = song_elem.find('name')
+                    duration_elem = song_elem.find('duration')
+                    price_elem = song_elem.find('price')
+                    
+                    if song_id_elem is not None and song_id_elem.text:
+                        song_id = int(song_id_elem.text)
+                        song = Song.objects.filter(song_id=song_id).first()
+                        
+                        if song:
+                            if user.user_type == 1 and song.song_singer != user:
+                                errors.append(f"第{idx}个歌曲: 无权修改其他歌手的歌曲")
+                                continue
+                                
+                            if name_elem is not None: song.song_name = name_elem.text
+                            if duration_elem is not None: song.song_duration = int(duration_elem.text)
+                            if price_elem is not None: song.song_price = float(price_elem.text)
+                            song.save()
+                            success_count += 1
+                        else:
+                            errors.append(f"第{idx}个歌曲: ID不存在")
+                    else:
+                        # 创建新歌曲
+                        if user.user_type == 1:
+                            name = name_elem.text if name_elem is not None else "Unknown"
+                            duration = int(duration_elem.text) if duration_elem is not None and duration_elem.text else 0
+                            price = float(price_elem.text) if price_elem is not None and price_elem.text else 0
+                            
+                            Song.objects.create(
+                                song_name=name,
+                                song_singer=user,
+                                song_duration=duration,
+                                song_price=price,
+                                is_active=False,
+                                song_file='songs/placeholder.mp3'
+                            )
+                            success_count += 1
+                        else:
+                            errors.append(f"第{idx}个歌曲: 只有歌手可以创建歌曲")
+                        
+                except Exception as e:
+                    errors.append(f"第{idx}个歌曲: 处理失败 - {str(e)}")
+            
+            return Response({
+                'message': f'导入完成，成功 {success_count} 条',
+                'errors': errors
+            })
+            
+        except Exception as e:
+            return Response({'error': f'XML解析失败: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ExternalMusicSearchView(APIView):
+    """外部音乐搜索视图（模拟）"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        keyword = request.query_params.get('keyword', '')
+        if not keyword:
+            return Response([])
+            
+        # 模拟外部API数据
+        # 在实际项目中，这里会调用 Spotify/Apple Music/Netease API
+        mock_results = [
+            {
+                'external_id': f'ext_{i}',
+                'name': f'{keyword} - Version {i}',
+                'singer': f'External Artist {i}',
+                'duration': 180 + i * 10,
+                'cover': 'https://via.placeholder.com/150',
+                'price': 0.00
+            }
+            for i in range(1, 6)
+        ]
+        
+        return Response(mock_results)
+
+
+class ExternalMusicImportView(APIView):
+    """外部音乐导入视图"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if request.user.user_type != 1: # 仅歌手可导入
+            return Response({'error': '只有歌手可以导入歌曲'}, status=status.HTTP_403_FORBIDDEN)
+            
+        external_data = request.data
+        name = external_data.get('name')
+        duration = external_data.get('duration', 0)
+        
+        if not name:
+            return Response({'error': '歌曲信息不完整'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 创建新歌曲
+        # 注意：这里我们没有实际的音频文件，所以创建一个占位符或需要后续上传
+        # 为了演示，我们假设这是一个元数据导入
+        try:
+            song = Song.objects.create(
+                song_name=name,
+                song_singer=request.user,
+                song_duration=duration,
+                song_price=0.00,
+                is_active=False, # 导入后默认为未上架，需审核或上传文件
+                # song_file 需要一个默认值，或者允许为空（如果模型允许）
+                # 由于模型FileField默认必须有值，这里我们可能需要一个默认文件，或者修改模型
+                # 暂时先用一个空字符串或占位路径，这可能会导致文件操作错误，但仅做演示
+                song_file='songs/placeholder.mp3' 
+            )
+            return Response({'message': '导入成功', 'song_id': song.song_id}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': f'导入失败: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RecordPlayView(APIView):
+    """记录播放历史"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        song_id = request.data.get('song_id')
+        duration = request.data.get('duration', 0)
+        
+        if not song_id:
+            return Response({'error': '缺少歌曲ID'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            song = Song.objects.get(song_id=song_id)
+            PlayHistory.objects.create(
+                user=request.user,
+                song=song,
+                play_duration=duration
+            )
+            return Response({'message': '记录成功'}, status=status.HTTP_201_CREATED)
+        except Song.DoesNotExist:
+            return Response({'error': '歌曲不存在'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class SongViewSet(viewsets.ModelViewSet):
@@ -128,7 +425,7 @@ class SongViewSet(viewsets.ModelViewSet):
             raise permissions.PermissionDenied('无权删除此歌曲')
     
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def star(self, request, song_id=None):
+    def star(self, request, pk=None):
         """收藏歌曲"""
         song = self.get_object()
         star_song, created = StarSong.objects.get_or_create(
@@ -144,7 +441,7 @@ class SongViewSet(viewsets.ModelViewSet):
             return Response({'message': '已经收藏过该歌曲'}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['delete'], permission_classes=[permissions.IsAuthenticated])
-    def unstar(self, request, song_id=None):
+    def unstar(self, request, pk=None):
         """取消收藏"""
         song = self.get_object()
         star_song = StarSong.objects.filter(user=request.user, song=song).first()
@@ -155,7 +452,7 @@ class SongViewSet(viewsets.ModelViewSet):
             return Response({'error': '未收藏该歌曲'}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def buy(self, request, song_id=None):
+    def buy(self, request, pk=None):
         """购买歌曲"""
         song = self.get_object()
         

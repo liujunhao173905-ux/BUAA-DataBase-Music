@@ -24,7 +24,9 @@ import {
   CheckPlaylistLog,
   CheckUserLog,
   AuditActionParams,
-  CheckStatus
+  CheckStatus,
+  getLoginLogs,
+  LoginLog
 } from '@/api/audit'
 
 // 定义审核日志项的基本接口
@@ -302,7 +304,29 @@ export const useAuditStore = defineStore('audit', () => {
     }
   }
 
+  // 登录日志相关
+  const loginLogs = ref<LoginLog[]>([])
 
+  // 获取登录日志
+  const fetchLoginLogs = async (params?: any) => {
+    try {
+      const response = await getLoginLogs(params)
+      // 处理分页响应
+      if (response && response.results) {
+        loginLogs.value = response.results
+        return response
+      }
+      // 处理数组响应（以防万一）
+      if (Array.isArray(response)) {
+        loginLogs.value = response
+        return { results: response, count: response.length }
+      }
+      return { results: [], count: 0 }
+    } catch (error) {
+      ElMessage.error('获取登录日志失败')
+      throw error
+    }
+  }
 
   return {
     checkSongs,
@@ -324,6 +348,8 @@ export const useAuditStore = defineStore('audit', () => {
     rejectUserAction,
     clearUserAction,
     clearAllUsersAction,
-    fetchPendingCounts
+    fetchPendingCounts,
+    loginLogs,
+    fetchLoginLogs
   }
 })

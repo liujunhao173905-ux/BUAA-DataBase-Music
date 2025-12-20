@@ -66,6 +66,16 @@ export interface CheckUserLog {
   check_snapshoot_data: any
 }
 
+// 登录日志接口
+export interface LoginLog {
+  log_id: number
+  log_user: number
+  log_user_name: string
+  log_user_type: number
+  log_user_type_display: string
+  log_time: string
+}
+
 // 审核日志分页响应
 export interface CheckLogPaginationResponse<T> {
   count: number
@@ -153,4 +163,9 @@ export const clearAllPlaylists = () => {
 // 批量清空用户审核记录
 export const clearAllUsers = () => {
   return request.post<{ message: string; deleted_count: number }>('/audit/users/clear_all/') as unknown as { message: string; deleted_count: number }
+}
+
+// 获取登录日志列表
+export const getLoginLogs = (params?: any) => {
+  return request.get<CheckLogPaginationResponse<LoginLog>>('/users/logs/login-logs/', { params }) as unknown as CheckLogPaginationResponse<LoginLog>
 }

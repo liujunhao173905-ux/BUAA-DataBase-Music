@@ -1,7 +1,8 @@
 """
 用户路由配置
 """
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import (
     RegisterView,
     LoginView,
@@ -12,13 +13,20 @@ from .views import (
     FollowingListView,
     MyFollowingListView,
     SingerListView,
+    LoginLogViewSet,
 )
+
+router = DefaultRouter()
+router.register(r'login-logs', LoginLogViewSet, basename='login-log')
 
 urlpatterns = [
     # 认证相关
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
     
+    # 日志相关
+    path('logs/', include(router.urls)),
+
     # 用户资料
     path('profile/', UserProfileView.as_view(), name='user-profile'),
     path('<int:user_id>/', UserDetailView.as_view(), name='user-detail'),

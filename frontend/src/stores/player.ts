@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Song } from '@/api/music'
+import { recordPlay } from '@/api/music'
 
 export const usePlayerStore = defineStore('player', () => {
   const currentSong = ref<Song | null>(null)
@@ -11,6 +12,7 @@ export const usePlayerStore = defineStore('player', () => {
   const duration = ref(0)
   const currentTime = ref(0)
   const volume = ref(1)
+  const isRecorded = ref(false)
 
   const initAudio = () => {
     if (!audio.value) {
@@ -22,6 +24,13 @@ export const usePlayerStore = defineStore('player', () => {
         if (audio.value) duration.value = audio.value.duration
       })
       audio.value.addEventListener('ended', () => {
+        // Record play history when song ends
+        if (currentSong.value && duration.value > 0 && !isRecorded.value) {
+          recordPlay(currentSong.value.song_id, Math.floor(duration.value)).catch(err => {
+            console.error('Failed to record play history', err)
+          })
+          isRecorded.value = true
+        }
         playNext()
       })
     }
@@ -40,6 +49,14 @@ export const usePlayerStore = defineStore('player', () => {
     if (!audio.value) initAudio()
     
     if (currentSong.value?.song_id !== song.song_id) {
+      // Record previous song if valid, not recorded, and played enough time (e.g. 5 seconds)
+      if (currentSong.value && !isRecorded.value && currentTime.value > 5) {
+        recordPlay(currentSong.value.song_id, Math.floor(currentTime.value)).catch(err => {
+          console.error('Failed to record play history (switch)', err)
+        })
+      }
+
+      isRecorded.value = false
       currentSong.value = song
       // Update currentIndex if song is in playlist
       const index = playlist.value.findIndex(s => s.song_id === song.song_id)

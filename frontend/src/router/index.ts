@@ -97,6 +97,12 @@ const router = createRouter({
       component: () => import('@/views/music/MyBoughtSongs.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/my/report',
+      name: 'UserReport',
+      component: () => import('@/views/analytics/UserReport.vue'),
+      meta: { requiresAuth: true },
+    },
     // 新增歌单和歌曲相关路由
     {
       path: '/my/playlists',
@@ -169,6 +175,12 @@ const router = createRouter({
       path: '/admin/check-history',
       name: 'CheckHistory',
       component: () => import('@/views/admin/CheckHistory.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/check-login-logs',
+      name: 'CheckLoginLogs',
+      component: () => import('@/views/admin/CheckLoginLogs.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
     },
   ],

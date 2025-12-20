@@ -14,7 +14,6 @@ urlpatterns = [
     path('api/playlists/', include('apps.playlists.urls')),
     path('api/audit/', include('apps.audit.urls')),
     path('api/analytics/', include('apps.analytics.urls')),
-    path('api/analytics/', include('apps.analytics.urls')),
 ]
 
 # 开发环境下的媒体文件服务
