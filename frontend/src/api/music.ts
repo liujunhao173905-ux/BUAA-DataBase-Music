@@ -16,7 +16,7 @@ export interface Song {
   song_singer_id: number
   song_createtime: string
   song_updatetime: string
-  is_active: boolean
+  song_status: number
   is_starred?: boolean
   is_bought?: boolean
   star_count?: number
@@ -33,7 +33,7 @@ export interface Playlist {
   playlist_creator_id: number
   playlist_createtime: string
   playlist_updatetime: string
-  is_active: boolean
+  playlist_status: boolean
   song_count: number
   is_starred?: boolean
   star_count?: number

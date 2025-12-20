@@ -24,7 +24,12 @@ class Playlist(models.Model):
     )
     playlist_createtime = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     playlist_updatetime = models.DateTimeField(auto_now=True, verbose_name='更新时间')
-    is_active = models.BooleanField(default=False, verbose_name='是否公开')  # 需要审核通过后才能公开
+    playlist_status = models.PositiveSmallIntegerField(
+        choices=[(0, '审核中'), (1, '已上架'), (2, '未过审'), (3, '已锁定')],
+        default=0,
+        db_index=True,
+        verbose_name='歌单状态'
+    )
     
     class Meta:
         db_table = 'playlists'
@@ -34,7 +39,7 @@ class Playlist(models.Model):
         indexes = [
             models.Index(fields=['playlist_name']),
             models.Index(fields=['playlist_creator']),
-            models.Index(fields=['is_active']),
+            models.Index(fields=['playlist_status']),
         ]
     
     def __str__(self):

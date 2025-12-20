@@ -25,14 +25,14 @@
       </div>
 
       <div class="progress-bar">
-         <!-- Simple progress for mini player -->
-         <el-slider 
-           v-model="currentTime" 
-           :max="playerStore.duration" 
-           :show-tooltip="false" 
-           @change="handleSeek" 
-           size="small"
-         />
+        <el-slider 
+          v-model="currentTime" 
+          :max="playerStore.duration" 
+          :show-tooltip="false" 
+          @change="handleSeek" 
+          @input="onStartDrag" 
+          size="small"
+        />
       </div>
     </div>
   </div>
@@ -48,13 +48,24 @@ const router = useRouter()
 const playerStore = usePlayerStore()
 
 const currentTime = ref(0)
+const isDragging = ref(false)
 
 watch(() => playerStore.currentTime, (val) => {
-  currentTime.value = val
+  if (!isDragging.value) {
+    currentTime.value = val
+  }
 })
+
+const onStartDrag = () => {
+  isDragging.value = true
+}
 
 const handleSeek = (val: number) => {
   playerStore.seek(val)
+  // 延迟一小会儿释放锁定，防止进度回弹闪烁
+  setTimeout(() => {
+    isDragging.value = false
+  }, 100)
 }
 
 const toDetail = () => {

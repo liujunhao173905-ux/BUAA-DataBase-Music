@@ -86,18 +86,43 @@
             {{ formatDate(scope.row.song_createtime) }}
           </template>
         </el-table-column>
-        <el-table-column prop="is_active" label="状态" width="100">
+        <el-table-column prop="song_status" label="状态" width="120">
           <template #default="scope">
-            <el-tag :type="scope.row.is_active ? 'success' : 'warning'">
-              {{ scope.row.is_active ? '已公开' : '待审核' }}
+            <el-tag
+              :type=statusColor(scope.row.song_status)>
+              {{ statusText(scope.row.song_status) }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="250" fixed="right">
           <template #default="scope">
-            <el-button type="primary" size="small" @click="handleDetail(scope.row)">详情</el-button>
-            <el-button type="success" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-button type="danger" size="small" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button
+              type="primary"
+              size="small"
+              @click.stop="handleDetail(scope.row)"
+              plain>详情</el-button>
+
+            <!-- 只有「审核未通过(2)」才允许重新编辑 -->
+            <el-button
+              v-if="scope.row.song_status === 1 || scope.row.song_status === 2"
+              type="success"
+              size="small"
+              @click.stop="handleEdit(scope.row)"
+              plain>编辑</el-button>
+
+            <!-- 其余状态显示「已锁定」或禁用 -->
+            <el-button
+              v-else
+              type="info"
+              size="small"
+              disabled
+              plain>编辑</el-button>
+
+            <el-button
+              type="danger"
+              size="small"
+              @click.stop="handleDelete(scope.row)"
+              :icon="Delete" circle></el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -121,7 +146,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, ArrowDown } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { getMySongs, deleteSong, exportSongs, importSongs, searchExternalSongs, importExternalSong } from '@/api/music'
 import type { Song } from '@/api/music'
 
@@ -142,6 +167,27 @@ const showExternalDialog = ref(false)
 const externalKeyword = ref('')
 const externalResults = ref<any[]>([])
 const externalLoading = ref(false)
+
+const statusColor = (st: number) => {
+  switch (st) {
+    case 0: return 'warning'
+    case 1: return 'success'
+    case 2: return 'danger'
+    case 3: return 'info'
+    default: return 'default'
+  }
+}
+
+/* 0 待审核  1 通过  2 未通过  3 锁定 */
+const statusText = (st: number) => {
+  switch (st) {
+    case 0: return '审核中'
+    case 1: return '已上架'
+    case 2: return '未过审'
+    case 3: return '已锁定'
+    default: return '未知'
+  }
+}
 
 const handleSelectionChange = (val: Song[]) => {
   multipleSelection.value = val

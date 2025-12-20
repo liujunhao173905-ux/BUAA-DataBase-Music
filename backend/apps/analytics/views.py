@@ -400,7 +400,7 @@ class MusicStatisticsView(APIView):
         total_songs = Song.objects.count()
         
         # 已上架歌曲数
-        active_songs = Song.objects.filter(is_active=True).count()
+        active_songs = Song.objects.filter(song_status=1).count()
         
         # 总收藏数
         total_stars = StarSong.objects.count()
@@ -448,7 +448,7 @@ class PlaylistStatisticsView(APIView):
         total_playlists = Playlist.objects.count()
         
         # 公开歌单数
-        active_playlists = Playlist.objects.filter(is_active=True).count()
+        active_playlists = Playlist.objects.filter(playlist_status=1).count()
         
         # 总收藏数
         total_stars = StarPlaylist.objects.count()

@@ -66,11 +66,11 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         
         # 普通用户只能看到已公开的歌单
         if not self.request.user.is_authenticated or self.request.user.user_type == 0:
-            queryset = queryset.filter(is_active=True)
+            queryset = queryset.filter(playlist_status=0)
         # 用户可以看到自己的所有歌单
         elif self.request.user.is_authenticated:
             queryset = queryset.filter(
-                Q(is_active=True) | Q(playlist_creator=self.request.user)
+                Q(playlist_status=0) | Q(playlist_creator=self.request.user)
             )
         
         return queryset.order_by('-playlist_createtime')
@@ -97,7 +97,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """更新歌单（需要重新审核）"""
         playlist = serializer.save()
-        playlist.is_active = False  # 修改后需要重新审核
+        playlist.playlist_status = 0  # 修改后需要重新审核
         playlist.save()
         # 创建新的审核记录
         CheckPlaylistLog.objects.create(
@@ -135,7 +135,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            song = Song.objects.get(song_id=song_id, is_active=True)
+            song = Song.objects.get(song_id=song_id, song_status=1)
         except Song.DoesNotExist:
             return Response(
                 {'error': '歌曲不存在或未上架'},
@@ -168,7 +168,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
     def recommend(self, request):
         """推荐歌单（按收藏量排序）"""
-        playlists = Playlist.objects.filter(is_active=True).annotate(
+        playlists = Playlist.objects.filter(playlist_status=1).annotate(
             star_count=Count('starred_by')
         ).order_by('-star_count')[:10]
         
@@ -257,7 +257,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             playlistId = self.get_object().playlist_id
             raw_songs = PlaylistSong.objects.filter(playlist_id=playlistId).select_related('song')
             # 只返回已审核的歌曲
-            songs = [raw_song.song for raw_song in raw_songs if raw_song.song.is_active]
+            songs = [raw_song.song for raw_song in raw_songs if raw_song.song.song_status == 1]
             serializer = SongSerializer(songs, many=True)
             return Response(serializer.data)
         except Playlist.DoesNotExist:

@@ -8,8 +8,8 @@ from .models import Playlist, PlaylistSong, StarPlaylist
 @admin.register(Playlist)
 class PlaylistAdmin(admin.ModelAdmin):
     """歌单管理"""
-    list_display = ['playlist_id', 'playlist_name', 'playlist_creator', 'is_active', 'playlist_createtime']
-    list_filter = ['is_active', 'playlist_createtime']
+    list_display = ['playlist_id', 'playlist_name', 'playlist_creator', 'playlist_status', 'playlist_createtime']
+    list_filter = ['playlist_status', 'playlist_createtime']
     search_fields = ['playlist_name', 'playlist_creator__user_name']
 
 

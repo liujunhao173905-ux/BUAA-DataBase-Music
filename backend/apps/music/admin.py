@@ -8,8 +8,8 @@ from .models import Song, StarSong, BuySong
 @admin.register(Song)
 class SongAdmin(admin.ModelAdmin):
     """歌曲管理"""
-    list_display = ['song_id', 'song_name', 'song_singer', 'song_price', 'is_active', 'song_createtime']
-    list_filter = ['is_active', 'song_createtime', 'song_singer']
+    list_display = ['song_id', 'song_name', 'song_singer', 'song_price', 'song_status', 'song_createtime']
+    list_filter = ['song_status', 'song_createtime', 'song_singer']
     search_fields = ['song_name', 'song_singer__user_name']
     ordering = ['-song_createtime']
 

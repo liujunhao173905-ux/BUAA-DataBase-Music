@@ -11,7 +11,7 @@ from apps.audit.models import CheckSongLog
 @receiver(post_save, sender=Song)
 def create_song_check_log(sender, instance, created, **kwargs):
     """创建歌曲时自动生成审核日志"""
-    if created and not instance.is_active:
+    if created and instance.song_status == 0:
         # 新创建且未激活的歌曲需要审核
         CheckSongLog.objects.create(
             check_song=instance,

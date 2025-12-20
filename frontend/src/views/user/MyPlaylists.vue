@@ -39,18 +39,43 @@
                 {{ formatDate(scope.row.playlist_createtime) }}
               </template>
             </el-table-column>
-            <el-table-column prop="is_active" label="状态" width="100">
+            <el-table-column prop="playlist_status" label="状态" width="120">
               <template #default="scope">
-                <el-tag :type="scope.row.is_active ? 'success' : 'warning'">
-                  {{ scope.row.is_active ? '已公开' : '待审核' }}
+                <el-tag
+                  :type=statusColor(scope.row.playlist_status)>
+                  {{ statusText(scope.row.playlist_status) }}
                 </el-tag>
               </template>
             </el-table-column>
+
             <el-table-column label="操作" width="250" fixed="right">
               <template #default="scope">
-                <el-button type="primary" size="small" @click.stop="handleView(scope.row)" :icon="View" plain>详情</el-button>
-                <el-button type="success" size="small" @click.stop="handleEdit(scope.row)" :icon="Edit" plain>编辑</el-button>
-                <el-button type="danger" size="small" @click.stop="handleDelete(scope.row)" :icon="Delete" circle></el-button>
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click.stop="handleView(scope.row)"
+                  plain>详情</el-button>
+
+                <el-button
+                  v-if="scope.row.playlist_status === 1 || scope.row.playlist_status === 2"
+                  type="success"
+                  size="small"
+                  @click.stop="handleEdit(scope.row)"
+                  plain>编辑</el-button>
+
+                <!-- 其余状态显示「已锁定」或禁用 -->
+                <el-button
+                  v-else
+                  type="info"
+                  size="small"
+                  disabled
+                  plain>编辑</el-button>
+
+                <el-button
+                  type="danger"
+                  size="small"
+                  @click.stop="handleDelete(scope.row)"
+                  :icon="Delete" circle />
               </template>
             </el-table-column>
           </el-table>
@@ -97,6 +122,27 @@ const formatDate = (dateString: string) => {
   if (!dateString) return '-'
   const date = new Date(dateString)
   return isNaN(date.getTime()) ? '- Invalid Date -' : date.toLocaleString()
+}
+
+const statusColor = (st: number) => {
+  switch (st) {
+    case 0: return 'warning'
+    case 1: return 'success'
+    case 2: return 'danger'
+    case 3: return 'danger'
+    default: return 'default'
+  }
+}
+
+/* 0 待审核  1 通过  2 未通过  3 锁定 */
+const statusText = (st: number) => {
+  switch (st) {
+    case 0: return '审核中'
+    case 1: return '已上架'
+    case 2: return '未过审'
+    case 3: return '已锁定'
+    default: return '未知'
+  }
 }
 
 // 获取我的歌单列表

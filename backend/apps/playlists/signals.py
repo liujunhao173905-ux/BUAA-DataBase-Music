@@ -11,7 +11,7 @@ from apps.audit.models import CheckPlaylistLog
 @receiver(post_save, sender=Playlist)
 def create_playlist_check_log(sender, instance, created, **kwargs):
     """创建歌单时自动生成审核日志"""
-    if created and not instance.is_active:
+    if created and instance.playlist_status == 0:
         # 新创建且未激活的歌单需要审核
         CheckPlaylistLog.objects.create(
             check_playlist=instance,

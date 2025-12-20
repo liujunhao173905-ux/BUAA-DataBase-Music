@@ -26,7 +26,12 @@ class Song(models.Model):
     )
     song_createtime = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     song_updatetime = models.DateTimeField(auto_now=True, verbose_name='更新时间')
-    is_active = models.BooleanField(default=False, verbose_name='是否上架')  # 需要审核通过后才能上架
+    song_status = models.PositiveSmallIntegerField(
+        choices=[(0, '审核中'), (1, '已上架'), (2, '未过审'), (3, '已锁定')],
+        default=0,
+        db_index=True,
+        verbose_name='歌曲状态'
+    )
     
     class Meta:
         db_table = 'songs'
@@ -36,7 +41,7 @@ class Song(models.Model):
         indexes = [
             models.Index(fields=['song_name']),
             models.Index(fields=['song_singer']),
-            models.Index(fields=['is_active']),
+            models.Index(fields=['song_status']),
         ]
     
     def __str__(self):

@@ -30,7 +30,7 @@
             <p>收藏：{{ song.star_count }} 次 · 购买：{{ song.buy_count }} 次</p>
 
             <div class="action-buttons">
-              <div v-if="song.is_active">
+              <div v-if="song.song_status === 1">
                 <el-button 
                   type="primary" 
                   size="large"

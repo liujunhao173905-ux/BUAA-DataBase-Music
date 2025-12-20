@@ -34,7 +34,7 @@ class PlaylistSerializer(serializers.ModelSerializer):
         fields = [
             'playlist_id', 'playlist_name', 'playlist_cover', 'playlist_intro',
             'playlist_creator', 'playlist_creator_name', 'playlist_creator_id',
-            'playlist_createtime', 'playlist_updatetime', 'is_active',
+            'playlist_createtime', 'playlist_updatetime', 'playlist_status',
             'song_count', 'is_starred', 'star_count', 'songs'
         ]
         read_only_fields = ['playlist_id', 'playlist_createtime', 'playlist_updatetime']
@@ -75,7 +75,7 @@ class PlaylistCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('需要登录')
         
         validated_data['playlist_creator'] = request.user
-        validated_data['is_active'] = False  # 新创建的歌单需要审核
+        validated_data['playlist_status'] = 0  # 新创建的歌单需要审核
         playlist = Playlist.objects.create(**validated_data)
         
         return playlist
@@ -99,7 +99,7 @@ class PlaylistUpdateSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         
-        validated_data['is_active'] = False  # 新创建的歌单需要审核
+        validated_data['playlist_status'] = 0  # 新创建的歌单需要审核
         
         instance.save()
         return instance

@@ -26,7 +26,7 @@ class SongSerializer(serializers.ModelSerializer):
             'song_id', 'song_name', 'song_cover', 'song_file',
             'song_duration', 'song_price', 'song_singer_name',
             'song_singer_id', 'song_createtime', 'song_updatetime',
-            'is_active', 'is_starred', 'is_bought', 'star_count', 'buy_count', 'bought_price'
+            'song_status', 'is_starred', 'is_bought', 'star_count', 'buy_count', 'bought_price'
         ]
         read_only_fields = ['song_id', 'song_createtime', 'song_updatetime']
     
@@ -78,7 +78,7 @@ class SongCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('只有歌手可以上传歌曲')
         
         validated_data['song_singer'] = request.user
-        validated_data['is_active'] = False  # 新上传的歌曲需要审核
+        validated_data['song_status'] = 0  # 新上传的歌曲需要审核
         song = Song.objects.create(**validated_data)
         
         return song
@@ -110,7 +110,7 @@ class SongUpdateSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         
-        validated_data['is_active'] = False  # 需要重新审核
+        validated_data['song_status'] = 0  # 需要重新审核
 
         instance.save()
         return instance

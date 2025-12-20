@@ -94,7 +94,7 @@ class CheckSongLogViewSet(viewsets.ModelViewSet):
         
         # 更新歌曲状态
         song = check_log.check_song
-        song.is_active = True
+        song.song_status = 1
         song.save()
         
         return Response({
@@ -128,7 +128,7 @@ class CheckSongLogViewSet(viewsets.ModelViewSet):
         
         # 歌曲保持未上架状态
         song = check_log.check_song
-        song.is_active = False
+        song.song_status = 2
         song.save()
         
         return Response({
@@ -155,7 +155,7 @@ class CheckSongLogViewSet(viewsets.ModelViewSet):
         
         # 歌曲重置为未上架状态
         song = check_log.check_song
-        song.is_active = False
+        song.song_status = 0
         song.save()
         
         return Response({
@@ -243,7 +243,7 @@ class CheckPlaylistLogViewSet(viewsets.ModelViewSet):
         check_log.save()
         
         playlist = check_log.check_playlist
-        playlist.is_active = True
+        playlist.playlist_status = 1
         playlist.save()
         
         return Response({
@@ -275,7 +275,7 @@ class CheckPlaylistLogViewSet(viewsets.ModelViewSet):
         check_log.save()
         
         playlist = check_log.check_playlist
-        playlist.is_active = False
+        playlist.playlist_status = 2
         playlist.save()
         
         return Response({
@@ -302,7 +302,7 @@ class CheckPlaylistLogViewSet(viewsets.ModelViewSet):
         
         # 歌单重置为未上架状态
         playlist = check_log.check_playlist
-        playlist.is_active = False
+        playlist.playlist_status = 0
         playlist.save()
         
         return Response({

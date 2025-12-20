@@ -58,6 +58,8 @@ class SongExportView(APIView):
         
         headers = ['歌曲ID', '歌曲名', '歌手', '时长(秒)', '价格', '上架状态', '创建时间']
         ws.append(headers)
+
+        status_map = {0: '审核中', 1: '已上架', 2: '未过审', 3: '已锁定'}
         
         for song in songs:
             ws.append([
@@ -66,7 +68,7 @@ class SongExportView(APIView):
                 song.song_singer.user_name,
                 song.song_duration,
                 song.song_price,
-                '已上架' if song.is_active else '未上架',
+                status_map.get(song.song_status, '未知'),
                 song.song_createtime.strftime('%Y-%m-%d %H:%M:%S')
             ])
             
@@ -83,6 +85,8 @@ class SongExportView(APIView):
 
     def _export_xml(self, songs):
         root = ET.Element("songs")
+
+        status_map = {0: '审核中', 1: '已上架', 2: '未过审', 3: '已锁定'}
         
         for song in songs:
             song_elem = ET.SubElement(root, "song")
@@ -91,7 +95,7 @@ class SongExportView(APIView):
             ET.SubElement(song_elem, "singer").text = song.song_singer.user_name
             ET.SubElement(song_elem, "duration").text = str(song.song_duration)
             ET.SubElement(song_elem, "price").text = str(song.song_price)
-            ET.SubElement(song_elem, "status").text = 'active' if song.is_active else 'inactive'
+            ET.SubElement(song_elem, "status").text = status_map.get(song.song_status, '未知')
             ET.SubElement(song_elem, "create_time").text = song.song_createtime.strftime('%Y-%m-%d %H:%M:%S')
             
         xml_str = ET.tostring(root, encoding='utf-8', method='xml')
@@ -146,7 +150,7 @@ class SongImportView(APIView):
                             song_singer=user,
                             song_duration=int(duration) if duration else 0,
                             song_price=float(price) if price else 0,
-                            is_active=False,
+                            song_status=0,
                             song_file='songs/placeholder.mp3' # 占位文件
                         )
                         success_count += 1
@@ -207,7 +211,7 @@ class SongImportView(APIView):
                                 song_singer=user,
                                 song_duration=duration,
                                 song_price=price,
-                                is_active=False,
+                                song_status=0,
                                 song_file='songs/placeholder.mp3'
                             )
                             success_count += 1
@@ -276,7 +280,7 @@ class ExternalMusicImportView(APIView):
                 song_singer=request.user,
                 song_duration=duration,
                 song_price=0.00,
-                is_active=False, # 导入后默认为未上架，需审核或上传文件
+                song_status=0, # 导入后默认为未上架，需审核或上传文件
                 # song_file 需要一个默认值，或者允许为空（如果模型允许）
                 # 由于模型FileField默认必须有值，这里我们可能需要一个默认文件，或者修改模型
                 # 暂时先用一个空字符串或占位路径，这可能会导致文件操作错误，但仅做演示
@@ -342,11 +346,11 @@ class SongViewSet(viewsets.ModelViewSet):
         
         # 普通用户只能看到已上架的歌曲
         if not self.request.user.is_authenticated or self.request.user.user_type == 0:
-            queryset = queryset.filter(is_active=True)
+            queryset = queryset.filter(song_status=1)
         # 歌手可以看到自己的所有歌曲
         elif self.request.user.user_type == 1:
             queryset = queryset.filter(
-                Q(is_active=True) | Q(song_singer=self.request.user)
+                Q(song_status=1) | Q(song_singer=self.request.user)
             )
         # 管理员可以看到所有歌曲
         
@@ -404,7 +408,7 @@ class SongViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """更新歌曲（需要重新审核）"""
         song = serializer.save()
-        song.is_active = False  # 修改后需要重新审核
+        song.song_status = 0  # 修改后需要重新审核
         song.save()
         # 创建新的审核记录
         CheckSongLog.objects.create(
@@ -509,7 +513,7 @@ class SongViewSet(viewsets.ModelViewSet):
         }
 
         # 3. 只取歌曲实例（去重，保留最新一条即可）
-        songs = [buy.song for buy in buy_qs if buy.song.is_active]
+        songs = [buy.song for buy in buy_qs if buy.song.song_status == 1]
 
         # 4. 分页
         page = self.paginate_queryset(songs)
@@ -525,7 +529,7 @@ class SongViewSet(viewsets.ModelViewSet):
     def recommend(self, request):
 
         """推荐歌曲（按收藏量排序）"""
-        songs = Song.objects.filter(is_active=True).annotate(
+        songs = Song.objects.filter(song_status=1).annotate(
             star_count=Count('starred_by')
         ).order_by('-star_count')[:10]
         
