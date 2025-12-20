@@ -126,6 +126,7 @@ const handleSearch = () => {
 }
 
 const handleSongClick = (song: Song) => {
+  playerStore.setPlaylist([song])
   playerStore.playSong(song)
 }
 

@@ -16,6 +16,8 @@
       </div>
       
       <div class="controls">
+        <el-icon class="control-icon mode-btn" @click="playerStore.toggleMode">
+          <Refresh v-if="playerStore.playMode === 0" /> <Operation v-else-if="playerStore.playMode === 1" /> <RefreshRight v-else /> </el-icon>
         <el-icon class="control-icon" @click="playerStore.playPrev"><ArrowLeft /></el-icon>
         <el-icon class="control-icon play-btn" @click="playerStore.togglePlay">
           <VideoPause v-if="playerStore.isPlaying" />
@@ -42,7 +44,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
-import { Headset, ArrowLeft, ArrowRight, VideoPlay, VideoPause } from '@element-plus/icons-vue'
+import { Headset, ArrowLeft, ArrowRight, VideoPlay, VideoPause, Refresh, RefreshRight, Operation } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const playerStore = usePlayerStore()
@@ -160,6 +162,12 @@ const toDetail = () => {
   top: -12px;
   left: 0;
   width: 100%;
+}
+
+.mode-btn {
+  font-size: 20px !important;
+  color: #909399;
+  margin-right: 10px;
 }
 
 :deep(.el-slider__button-wrapper) {

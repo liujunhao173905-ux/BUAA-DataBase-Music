@@ -102,7 +102,6 @@
               @click.stop="handleDetail(scope.row)"
               plain>详情</el-button>
 
-            <!-- 只有「审核未通过(2)」才允许重新编辑 -->
             <el-button
               v-if="scope.row.song_status === 1 || scope.row.song_status === 2"
               type="success"

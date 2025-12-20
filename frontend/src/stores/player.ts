@@ -3,6 +3,12 @@ import { ref } from 'vue'
 import type { Song } from '@/api/music'
 import { recordPlay } from '@/api/music'
 
+export enum PlayMode {
+  SEQUENCE = 0, // 顺序播放
+  RANDOM = 1,   // 随机播放
+  LOOP = 2      // 单曲循环
+}
+
 export const usePlayerStore = defineStore('player', () => {
   const currentSong = ref<Song | null>(null)
   const isPlaying = ref(false)
@@ -13,6 +19,11 @@ export const usePlayerStore = defineStore('player', () => {
   const currentTime = ref(0)
   const volume = ref(1)
   const isRecorded = ref(false)
+  const playMode = ref<PlayMode>(PlayMode.SEQUENCE)
+
+  const toggleMode = () => {
+    playMode.value = (playMode.value + 1) % 3
+  }
 
   const initAudio = () => {
     if (!audio.value) {
@@ -48,7 +59,7 @@ export const usePlayerStore = defineStore('player', () => {
   const playSong = (song: Song) => {
     if (!audio.value) initAudio()
     
-    if (currentSong.value?.song_id !== song.song_id) {
+    // if (currentSong.value?.song_id !== song.song_id) {
       // Record previous song if valid, not recorded, and played enough time (e.g. 5 seconds)
       if (currentSong.value && !isRecorded.value && currentTime.value > 5) {
         recordPlay(currentSong.value.song_id, Math.floor(currentTime.value)).catch(err => {
@@ -71,9 +82,9 @@ export const usePlayerStore = defineStore('player', () => {
           isPlaying.value = false
         })
       }
-    } else {
-      togglePlay()
-    }
+    // } else {
+    //   togglePlay()
+    // }
   }
 
   const togglePlay = () => {
@@ -87,26 +98,42 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
+  const generateRandomIndex = () => {
+  let newIndex = Math.floor(Math.random() * playlist.value.length)
+  while (newIndex === currentIndex.value) {
+    newIndex = Math.floor(Math.random() * playlist.value.length)
+  }
+  return newIndex
+}
+
   const playNext = () => {
     if (playlist.value.length === 0) return
-    
-    let nextIndex = currentIndex.value + 1
-    if (nextIndex >= playlist.value.length) {
-      nextIndex = 0 // Loop to start
+
+    if (playMode.value === PlayMode.RANDOM) {
+      const randomIndex = generateRandomIndex()
+      playSong(playlist.value[randomIndex])
+    } else if (playMode.value === PlayMode.LOOP) {
+      playSong(playlist.value[currentIndex.value])
+    } else {
+      let nextIndex = currentIndex.value + 1
+      if (nextIndex >= playlist.value.length) nextIndex = 0
+      playSong(playlist.value[nextIndex])
     }
-    const nextSong = playlist.value[nextIndex]
-    playSong(nextSong)
   }
 
   const playPrev = () => {
     if (playlist.value.length === 0) return
 
-    let prevIndex = currentIndex.value - 1
-    if (prevIndex < 0) {
-      prevIndex = playlist.value.length - 1 // Loop to end
+    if (playMode.value === PlayMode.RANDOM) {
+      const randomIndex = generateRandomIndex()
+      playSong(playlist.value[randomIndex])
+    } else if (playMode.value === PlayMode.LOOP) {
+      playSong(playlist.value[currentIndex.value])
+    } else {
+      let prevIndex = currentIndex.value - 1
+      if (prevIndex < 0) prevIndex = playlist.value.length - 1
+      playSong(playlist.value[prevIndex])
     }
-    const prevSong = playlist.value[prevIndex]
-    playSong(prevSong)
   }
 
   const setVolume = (val: number) => {
@@ -128,6 +155,8 @@ export const usePlayerStore = defineStore('player', () => {
     currentTime,
     duration,
     volume,
+    playMode,
+    toggleMode,
     playSong,
     togglePlay,
     playNext,

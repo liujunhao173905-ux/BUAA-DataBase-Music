@@ -306,6 +306,7 @@ const isPlayingThisSong = computed(() => {
 
 const handlePlay = () => {
   if (song.value) {
+    playerStore.setPlaylist([song.value])
     playerStore.playSong(song.value)
   }
 }
