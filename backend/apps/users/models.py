@@ -39,6 +39,12 @@ class User(AbstractBaseUser):
         (1, '歌手'),
         (2, '管理员'),
     )
+
+    GENDER_TYPES = (
+        (0, '保密'),
+        (1, '男'),
+        (2, '女'),
+    )
     
     user_id = models.AutoField(primary_key=True, verbose_name='用户ID')
     user_name = models.CharField(max_length=64, unique=True, verbose_name='用户名')
@@ -46,6 +52,9 @@ class User(AbstractBaseUser):
     user_avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name='头像')
     user_createtime = models.DateTimeField(auto_now_add=True, verbose_name='注册时间')
     user_type = models.IntegerField(choices=USER_TYPES, default=0, verbose_name='用户类型')
+    user_gender = models.IntegerField(choices=GENDER_TYPES, default=0, verbose_name='性别')
+    user_birth_date = models.DateField(null=True, blank=True, verbose_name='出生日期')
+    user_balance = models.DecimalField(max_digits=10, decimal_places=2, default=100.00, verbose_name='账户余额')
     
     # Django认证系统必需字段
     is_active = models.BooleanField(default=True, verbose_name='是否激活')
@@ -95,6 +104,15 @@ class User(AbstractBaseUser):
     def is_admin(self):
         """是否为管理员"""
         return self.user_type == 2
+    
+    @property
+    def user_age(self) -> int | None:
+        """计算用户年龄"""
+        if self.user_birth_date:
+            today = timezone.now().date()
+            return (today.year - self.user_birth_date.year -
+                    ((today.month, today.day) < (self.user_birth_date.month, self.user_birth_date.day)))
+        return None
 
 
 class Follow(models.Model):

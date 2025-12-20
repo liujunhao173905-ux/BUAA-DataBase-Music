@@ -63,6 +63,31 @@
                   prefix-icon="Phone"
                 />
               </el-form-item>
+
+              <el-form-item label="性别" prop="user_gender">
+                <el-select v-model="form.user_gender" placeholder="请选择性别">
+                  <el-option label="保密" :value="0" />
+                  <el-option label="男" :value="1" />
+                  <el-option label="女" :value="2" />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="出生日期" prop="user_birth_date">
+                <el-date-picker
+                  v-model="form.user_birth_date"
+                  type="date"
+                  placeholder="选择日期"
+                  :max="maxDate"
+                />
+              </el-form-item>
+
+              <el-form-item label="年龄" prop="user_age">
+                <el-input :model-value="computedAge" disabled />
+              </el-form-item>
+
+              <el-form-item label="账户余额" prop="user_balance">
+                <el-input :model-value="`¥${user.user_balance || 0}`" disabled />
+              </el-form-item>
               
               <el-form-item label="注册时间">
                 <span>{{ formatDate(user.user_createtime) }}</span>
@@ -101,7 +126,21 @@ const user = computed(() => authStore.user)
 
 const form = reactive({
   user_avatar: null as File | null,
-  user_mobile: '',
+  user_mobile: user.value?.user_mobile,
+  user_gender: user.value?.user_gender,
+  user_birth_date: user.value?.user_birth_date ? new Date(user.value.user_birth_date as string) : null as Date | null,
+})
+
+const maxDate = computed(() => new Date())
+
+const computedAge = computed(() => {
+  if (!form.user_birth_date) return ''
+  const today = new Date()
+  const birth = new Date(form.user_birth_date)
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+  return age.toString()
 })
 
 const avatarPreview = ref<string>(user.value?.user_avatar || '')  // 初始用后端头像
@@ -114,9 +153,20 @@ const validateMobile = (_rule: any, value: any, callback: any) => {
   }
 }
 
+const validateBirth = (_rule: any, value: Date | null, callback: any) => {
+  if (!value) return callback()                 // 允许空（可选）
+  if (value > new Date()) {
+    return callback(new Error('出生日期不能晚于当前日期'))
+  }
+  callback()
+}
+
 const rules: FormRules = {
   user_mobile: [
     { validator: validateMobile, trigger: 'blur' },
+  ],
+  user_birth_date: [
+    { validator: validateBirth, trigger: 'blur' },
   ],
 }
 
@@ -180,9 +230,17 @@ const handleUpdate = async () => {
   loading.value = true
   try {
     const formDataToSend = new FormData()
-    formDataToSend.append('user_mobile', form.user_mobile)
+    if (form.user_mobile) {
+      formDataToSend.append('user_mobile', form.user_mobile)
+    }
     if (form.user_avatar) {
       formDataToSend.append('user_avatar', form.user_avatar)
+    }
+    if (form.user_gender) {
+      formDataToSend.append('user_gender', form.user_gender.toString())
+    }
+    if (form.user_birth_date) {
+      formDataToSend.append('user_birth_date', form.user_birth_date.toLocaleDateString('en-CA').split('T')[0])
     }
     const user = await updateUserProfile(formDataToSend)
     authStore.updateUser(user)

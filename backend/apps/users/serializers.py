@@ -13,11 +13,13 @@ class UserSerializer(serializers.ModelSerializer):
     user_avatar = serializers.ImageField(use_url=True, required=False)
     user_createtime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     date_joined = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
+    user_age = serializers.IntegerField()
     
     class Meta:
         model = User
         fields = [
             'user_id', 'user_name', 'user_mobile', 'user_avatar',
+            'user_gender', 'user_birth_date', 'user_age', 'user_balance',
             'user_createtime', 'user_type', 'user_type_display',
             'is_active', 'password', 'date_joined'
         ]
@@ -87,11 +89,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
     user_avatar = serializers.ImageField(use_url=True)
     user_createtime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     date_joined = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
+    user_age = serializers.IntegerField()
     
     class Meta:
         model = User
         fields = [
             'user_id', 'user_name', 'user_mobile', 'user_avatar',
+            'user_gender', 'user_birth_date', 'user_age', 'user_balance',
             'user_createtime', 'user_type', 'user_type_display',
             'date_joined', 'followers_count', 'following_count'
         ]

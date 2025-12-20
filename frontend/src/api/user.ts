@@ -28,6 +28,10 @@ export interface UserInfo {
   date_joined: string
   followers_count?: number
   following_count?: number
+  user_gender?: 0 | 1 | 2
+  user_birth_date?: string
+  user_age?: number
+  user_balance?: number
 }
 
 export interface LoginResponse {
