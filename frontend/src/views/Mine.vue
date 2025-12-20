@@ -8,7 +8,7 @@
         </el-avatar>
         <div class="user-info">
           <h2 class="username">{{ authStore.user?.user_name || '未登录' }}</h2>
-          <p class="phone">{{ authStore.user?.user_mobile || '点击登录/注册' }}</p>
+          <!-- <p class="phone">{{ authStore.user?.user_mobile || '点击登录/注册' }}</p> -->
           <div class="tags">
             <el-tag size="small" v-if="authStore.isSinger" type="success">歌手</el-tag>
             <el-tag size="small" v-if="authStore.isAdmin" type="warning">管理员</el-tag>

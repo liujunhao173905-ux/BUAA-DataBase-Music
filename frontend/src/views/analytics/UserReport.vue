@@ -60,7 +60,17 @@
     <el-row :gutter="20" class="mt-4">
       <el-col :span="24">
         <el-card shadow="hover">
-          <template #header>听歌时段分布</template>
+          <template #header>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span>听歌时段分布</span>
+              <el-switch
+                v-model="use30h"
+                active-text="30h 制"
+                inactive-text="24h 制"
+                style="margin-left: 12px"
+              />
+            </div>
+          </template>
           <div ref="chartRef" style="height: 400px;"></div>
         </el-card>
       </el-col>
@@ -69,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
@@ -88,11 +98,39 @@ const reportData = ref<UserReportData>({
 const chartRef = ref<HTMLElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
 
+const use30h = ref(false)
+
+const chartData = computed(() => {
+  const raw = reportData.value.hour_distribution // 0-23 原始数据
+  if (!use30h.value) {
+    // 24h 制：直接返回 0-23
+    return {
+      xAxis: raw.map((v) => Number(v.hour) + '时'),
+      data: raw.map((v) => v.count)
+    }
+  }
+  /* 30h 制：只保留 6-23 原始点，并把这些点映射成 6-23；
+     0-5 点映射成 24-29 点，整体范围 6-29 */
+  const normal = raw
+    .filter((v) => +v.hour >= 6) // 去掉 0-5
+    .map((v) => ({ hour: +v.hour, count: v.count }))
+
+  const extra = raw
+    .filter((v) => +v.hour <= 5) // 0-5 点
+    .map((v) => ({ hour: +v.hour + 24, count: v.count })) // 变 24-29
+
+  const merged = [...normal, ...extra] // 6-23 在前，24-29 在后
+  return {
+    xAxis: merged.map((v) => v.hour + '时'),
+    data: merged.map((v) => v.count)
+  }
+})
+
 const initChart = () => {
   if (!chartRef.value) return
   
   chartInstance = echarts.init(chartRef.value)
-  const hours = reportData.value.hour_distribution.map(item => item.hour + '点')
+  const hours = reportData.value.hour_distribution.map(item => item.hour + '时')
   const counts = reportData.value.hour_distribution.map(item => item.count)
 
   const option = {
@@ -121,6 +159,35 @@ const initChart = () => {
 
   chartInstance.setOption(option)
 }
+
+const updateChart = () => {
+  const dom = chartRef.value
+  if (!dom) return // ① 兜底：没有容器直接返回
+
+  if (!chartInstance) {
+    chartInstance = echarts.init(dom) // ② 首次再 init
+  }
+  const { xAxis, data } = chartData.value
+  // 颜色：24h 统一蓝色；30h 制把 24-30 设为橙色区分「次日」
+  const colors = xAxis.map((h) => (h.includes('24') || h.includes('25') || h.includes('26') || h.includes('27') || h.includes('28') || h.includes('29') || h.includes('30') ? '#FF9A00' : '#409EFF'))
+
+  chartInstance.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: xAxis, name: '时间' },
+    yAxis: { type: 'value', name: '播放次数' },
+    series: [
+      {
+        type: 'bar',
+        data: data,
+        itemStyle: {
+          color: (params: { dataIndex: number }) => colors[params.dataIndex]
+        }
+      }
+    ]
+  })
+}
+
+watch(chartData, updateChart, { immediate: true })
 
 const fetchData = async () => {
   try {

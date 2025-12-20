@@ -498,21 +498,27 @@ class SongViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def bought(self, request):
         """获取当前用户购买的歌曲"""
-        # 获取用户购买的歌曲，按购买时间倒序
-        # Assuming BuySong has created_at or similar, let's check model again or use buy_song_id desc
-        buy_songs = BuySong.objects.filter(user=request.user)\
-            .select_related('song', 'song__song_singer')\
+        # 1. 当前用户的购买记录，按最新排序
+        buy_qs = BuySong.objects.filter(user=request.user) \
+            .select_related('song') \
             .order_by('-buy_song_id')
-        
-        # 支持分页
-        page = self.paginate_queryset(buy_songs)
+
+        # 2. 构造  song_id -> buy_price  映射
+        buy_map: dict[int, str] = {
+            buy.song_id: str(buy.buy_price) for buy in buy_qs
+        }
+
+        # 3. 只取歌曲实例（去重，保留最新一条即可）
+        songs = [buy.song for buy in buy_qs if buy.song.is_active]
+
+        # 4. 分页
+        page = self.paginate_queryset(songs)
         if page is not None:
-            songs = [item.song for item in page]
-            serializer = self.get_serializer(songs, many=True)
+            serializer = self.get_serializer(page, many=True, context={'buy_map': buy_map})
+            print(serializer.data)
             return self.get_paginated_response(serializer.data)
-            
-        songs = [item.song for item in buy_songs]
-        serializer = self.get_serializer(songs, many=True)
+
+        serializer = self.get_serializer(songs, many=True, context={'buy_map': buy_map})
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])

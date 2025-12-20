@@ -18,6 +18,7 @@ class SongSerializer(serializers.ModelSerializer):
     song_price = serializers.DecimalField(max_digits=10, decimal_places=2, coerce_to_string=False, read_only=True)
     song_createtime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
     song_updatetime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', read_only=True)
+    bought_price = serializers.SerializerMethodField()
     
     class Meta:
         model = Song
@@ -25,7 +26,7 @@ class SongSerializer(serializers.ModelSerializer):
             'song_id', 'song_name', 'song_cover', 'song_file',
             'song_duration', 'song_price', 'song_singer_name',
             'song_singer_id', 'song_createtime', 'song_updatetime',
-            'is_active', 'is_starred', 'is_bought', 'star_count', 'buy_count'
+            'is_active', 'is_starred', 'is_bought', 'star_count', 'buy_count', 'bought_price'
         ]
         read_only_fields = ['song_id', 'song_createtime', 'song_updatetime']
     
@@ -49,8 +50,13 @@ class SongSerializer(serializers.ModelSerializer):
     
     def get_buy_count(self, obj):
         """获取购买数"""
+        print('debug1')
         return obj.bought_by.count()
-
+    
+    def get_bought_price(self, obj):
+        print('debug2')
+        buy_map = self.context.get('buy_map', {})
+        return buy_map.get(obj.song_id, None)
 
 class SongCreateSerializer(serializers.ModelSerializer):
     """歌曲创建序列化器（用于上传）"""

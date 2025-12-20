@@ -167,25 +167,18 @@ const fetchSongs = async (page = pagination.page) => {
       songs.value = responseData.results || []
       pagination.total = responseData.count || songs.value.length
     } else if (filters.searchType === 'playlist') {
-      // 搜索歌单 - 仅在有搜索关键词时才请求
-      if (filters.search) {
-        const params: Record<string, string | number> = {
-          page,
-          page_size: pagination.pageSize,
-          search: filters.search
-        }
-
-        const response = await request.get('/playlists/', { params })
-        // 使用类型断言来处理API响应
-        const responseData = response as { data?: { playlists?: any[], total?: number } }
-        // 直接使用后端返回的数据格式
-        songs.value = responseData.data?.playlists || []
-        pagination.total = responseData.data?.total || songs.value.length
-      } else {
-        // 没有搜索关键词时，不显示歌单
-        songs.value = []
-        pagination.total = 0
+      // 获取全部歌单（空搜索 = 返回全部）
+      const params: Record<string, string | number> = {
+        page,
+        page_size: pagination.pageSize
       }
+      // 如果用户确实输入了关键词，再带上 search
+      if (filters.search) params.search = filters.search
+
+      const response = await request.get('/playlists/', { params })
+      const responseData = response as { data?: { playlists?: any[], total?: number } }
+      songs.value = responseData.data?.playlists || []
+      pagination.total = responseData.data?.total || 0
     } else if (filters.searchType === 'singer') {
       // 搜索歌手 - 仅在有搜索关键词时才请求
       if (filters.search) {

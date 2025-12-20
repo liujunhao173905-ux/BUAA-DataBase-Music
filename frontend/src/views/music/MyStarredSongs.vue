@@ -24,11 +24,8 @@
             <el-table-column prop="song_name" label="歌曲名称" min-width="200">
               <template #default="scope">
                 <div class="song-info" @click="handleSongClick(scope.row)" style="cursor: pointer;">
-                  <div class="cover-wrapper">
-                    <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
-                    <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
-                  </div>
-                  <span class="song-name">{{ scope.row.song_name }}</span>
+                  <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
+                  <span>{{ scope.row.song_name }}</span>
                   <el-tag size="small" type="danger" v-if="scope.row.song_price > 0 && !scope.row.is_bought" effect="plain" style="margin-left: 8px">VIP</el-tag>
                 </div>
               </template>
@@ -222,20 +219,11 @@ onMounted(() => {
   color: #303133;
 }
 
-.cover-wrapper {
-  position: relative;
+.song-cover {
   width: 40px;
   height: 40px;
-  border-radius: 4px;
-  overflow: hidden;
-  flex-shrink: 0;
   margin-right: 10px;
-}
-
-.song-cover {
-  width: 100%;
-  height: 100%;
-  display: block;
+  border-radius: 4px;
 }
 
 .hover-play {

@@ -252,6 +252,7 @@ class ExportReportView(APIView):
         return response
 
     def _generate_excel(self, data, filename):
+        print(data)
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "听歌报告"
@@ -280,6 +281,17 @@ class ExportReportView(APIView):
                 singer['song__song_singer__user_name'], 
                 singer['play_count']
             ])
+        
+        ws.append([])
+        ws.append(['听歌时段分布'])
+        hours = []
+        counts = []
+        for _, item in enumerate(data['hour_distribution'], 1):
+            hours.append(item['hour'])
+            counts.append(item['count'])
+            
+        ws.append(hours)
+        ws.append(counts)
             
         buffer = io.BytesIO()
         wb.save(buffer)

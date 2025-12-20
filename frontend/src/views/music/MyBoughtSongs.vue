@@ -21,7 +21,7 @@
         <div v-if="songs.length > 0" class="song-list">
           <el-table :data="songs" stripe style="width: 100%" @row-dblclick="handlePlay">
             <el-table-column type="index" width="50" />
-            <el-table-column prop="song_name" label="歌曲名称" min-width="200">
+            <el-table-column prop="song_name" label="歌曲名称" min-width="200" align="center">
               <template #default="scope">
                 <div class="song-info" @click="handlePlay(scope.row)" style="cursor: pointer;">
                   <div class="cover-wrapper">
@@ -32,13 +32,23 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="song_singer_name" label="歌手" width="150" />
-            <el-table-column prop="song_duration" label="时长" width="100">
+            <el-table-column prop="song_singer_name" label="歌手" width="150" align="center" />
+            <el-table-column prop="song_duration" label="时长" width="100" align="center">
                <template #default="scope">
                   {{ formatDuration(scope.row.song_duration) }}
                </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column label="当前价格" width="110" align="center">
+              <template #default="scope">
+                {{ formatPrice(scope.row.song_price) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="购买价格" width="110" align="center">
+              <template #default="scope">
+                {{ formatPrice(scope.row.bought_price) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" fixed="right" align="center">
               <template #default="scope">
                 <el-button type="primary" size="small" @click.stop="handlePlay(scope.row)" :icon="VideoPlay" plain>播放</el-button>
                 <el-button type="success" size="small" @click.stop="handleDownload(scope.row)" :icon="Download" plain>下载</el-button>
@@ -137,6 +147,12 @@ const handleCurrentChange = (current: number) => {
 
 const handleBack = () => {
   router.back()
+}
+
+const formatPrice = (price: any) => {
+  const numPrice = Number(price)
+  if (!price || isNaN(numPrice)) return '免费'
+  return `¥${numPrice.toFixed(2)}`
 }
 
 onMounted(() => {

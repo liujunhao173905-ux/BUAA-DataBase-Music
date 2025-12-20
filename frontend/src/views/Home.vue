@@ -71,7 +71,7 @@
           <el-icon class="section-icon" color="#E6A23C"><Collection /></el-icon>
           <h2>推荐歌单</h2>
         </div>
-        <span class="more" @click="$router.push('/playlists')">更多 <el-icon><ArrowRight /></el-icon></span>
+        <span class="more" @click="$router.push('/songs?searchType=playlist')">更多 <el-icon><ArrowRight /></el-icon></span>
       </div>
       <div class="scroll-container" v-loading="loadingPlaylists">
          <div 

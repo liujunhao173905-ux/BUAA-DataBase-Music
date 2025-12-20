@@ -51,10 +51,10 @@
                   {{ song.is_starred ? '取消收藏' : '收藏歌曲' }}
                 </el-button>
                 <el-button
-                  type="success"
+                  type="primary"
                   :disabled="song.is_bought"
                   :loading="buyLoading"
-                  @click="handleBuySong"
+                  @click="openBuyDialog"
                 >
                   {{ song.is_bought ? '已购买' : buyButtonText }}
                 </el-button>
@@ -65,6 +65,34 @@
                 >
                   {{ '加入歌单' }}
                 </el-button>
+
+                <!-- 购买确认弹窗 -->
+                <el-dialog
+                  v-model="buyDialogVisible"
+                  title="确认购买"
+                  width="400px"
+                  :close-on-click-modal="false"
+                >
+                  <div v-loading="buyCheckLoading">
+                    <p>歌曲：<strong>{{ song?.song_name }}</strong></p>
+                    <p>价格：<strong style="color: #f56c6c;">{{ formatPrice(song?.song_price) }}</strong></p>
+                    <p>您的余额：<strong>{{ formatPrice(userBalance) }}</strong></p>
+                    <p v-if="!canAfford" style="color: #f56c6c; margin-top: 8px;">
+                      余额不足，请先充值
+                    </p>
+                  </div>
+                  <template #footer>
+                    <el-button @click="buyDialogVisible = false">取消</el-button>
+                    <el-button
+                      type="primary"
+                      :disabled="!canAfford"
+                      :loading="buyLoading"
+                      @click="confirmBuy"
+                    >
+                      确认购买
+                    </el-button>
+                  </template>
+                </el-dialog>
               </div>
             </div>
 
@@ -123,6 +151,11 @@ const buyLoading = ref(false)
 
 const playLists = ref<any[]>([])
 const playListsLoading = ref(false)
+
+/* ----- 购买确认弹窗相关 ----- */
+const buyDialogVisible = ref(false)
+const buyCheckLoading = ref(false)   // 查询余额时的 loading
+const userBalance = ref(0)           // 用户余额（单位：元）
 
 const playlistDialogVisible = ref(false)
 const userPlaylists = ref<any[]>([])
@@ -187,6 +220,51 @@ const songDurationText = computed(() => {
   const s = Math.floor(total % 60)
   return `${m}:${s.toString().padStart(2, '0')}`
 })
+
+const canAfford = computed(() => {
+  return Number(userBalance.value) >= Number(song.value?.song_price || 0)
+})
+
+/* 打开弹窗 + 拉取余额 */
+const openBuyDialog = async () => {
+  if (!song.value) return
+  buyDialogVisible.value = true
+  buyCheckLoading.value = true
+  try {
+    const data = await request.get('/users/profile/')
+    userBalance.value = Number(data.user_balance || 0)
+  } catch (e) {
+    ElMessage.error('获取余额失败')
+    userBalance.value = 0
+  } finally {
+    buyCheckLoading.value = false
+  }
+}
+
+/* 弹窗里点“确认购买”才真正走购买逻辑 */
+const confirmBuy = async () => {
+  buyLoading.value = true
+  try {
+    const cost = Number(song.value.song_price)
+    // 1. 先调用购买接口
+    await request.post(`/music/songs/${song.value.song_id}/buy/`)
+
+    // 2. 本地状态更新
+    song.value.is_bought = true
+    song.value.buy_count = (song.value.buy_count || 0) + 1
+    userBalance.value = Math.max(0, userBalance.value - cost)   // 本地先减
+    ElMessage.success('购买成功')
+
+    // 3. 把扣完后的余额同步给后端（partial 更新）
+    await request.put('/users/profile/', { user_balance: userBalance.value.toFixed(2) })
+
+    buyDialogVisible.value = false
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.detail || e?.response?.data?.user_balance?.[0] || '购买失败')
+  } finally {
+    buyLoading.value = false
+  }
+}
 
 const buyButtonText = computed(() => {
   if (!song.value) return '购买'
