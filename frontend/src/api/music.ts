@@ -86,6 +86,32 @@ export const getMySongs = (page: number = 1, pageSize: number = 10) => {
     })
 }
 
+// 获取我购买的歌曲
+export const getMyBoughtSongs = (page: number = 1, pageSize: number = 10) => {
+  return request.get<{ count: number; results: Song[] }>(`/music/songs/bought/`, { params: { page, page_size: pageSize } })
+    .then(response => {
+      return {
+        data: {
+          songs: response.results,
+          total: response.count
+        }
+      }
+    })
+}
+
+// 获取我收藏的歌曲
+export const getMyStarredSongs = (page: number = 1, pageSize: number = 10) => {
+  return request.get<{ count: number; results: Song[] }>(`/music/songs/starred/`, { params: { page, page_size: pageSize } })
+    .then(response => {
+      return {
+        data: {
+          songs: response.results,
+          total: response.count
+        }
+      }
+    })
+}
+
 // 上传歌曲
 export const uploadSong = (formData: FormData) => {
   return request.post<Song>('/music/songs/', formData, {
@@ -117,6 +143,27 @@ export const getPlaylists = (params?: any) => {
 // 获取歌单详情
 export const getPlaylistDetail = (playlistId: number) => {
   return request.get<Playlist>(`/playlists/${playlistId}/`) as unknown as Playlist
+}
+
+// 推荐歌单
+export const getRecommendPlaylists = () => {
+  return request.get<{ data: { playlists: Playlist[] } }>('/playlists/recommend/') as unknown as { data: { playlists: Playlist[] } }
+}
+
+// 推荐歌曲
+export const getRecommendSongs = () => {
+  return request.get<{ data: { songs: Song[] } }>('/music/songs/recommend/')
+    .then(res => {
+        // Adjust based on actual API response if needed. 
+        // Assuming backend returns { results: Song[] } or similar for list endpoints, 
+        // but for recommend it might be different. 
+        // Based on Home.vue usage: songs.value = await getRecommendSongs() -> expects Song[]
+        // So we should return the array directly or handle the response structure.
+        // Let's assume standard pagination result or list.
+        if ((res as any).results) return (res as any).results;
+        if (Array.isArray(res)) return res;
+        return [];
+    })
 }
 
 // 创建歌单

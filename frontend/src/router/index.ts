@@ -16,7 +16,38 @@ const router = createRouter({
     },
     {
       path: '/',
+      component: () => import('@/views/Layout.vue'),
       redirect: '/home',
+      children: [
+        {
+          path: 'home',
+          name: 'Home',
+          component: () => import('@/views/Home.vue'),
+        },
+        {
+          path: 'mine',
+          name: 'Mine',
+          component: () => import('@/views/Mine.vue'),
+        }
+      ]
+    },
+    {
+      path: '/my/music',
+      name: 'MusicCenter',
+      component: () => import('@/views/music/MusicCenter.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/my/playlists-center',
+      name: 'PlaylistCenter',
+      component: () => import('@/views/user/PlaylistCenter.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/my/following',
+      name: 'Following',
+      component: () => import('@/views/user/Following.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/login',
@@ -28,12 +59,6 @@ const router = createRouter({
       path: '/register',
       name: 'Register',
       component: () => import('@/views/auth/Register.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
-      path: '/home',
-      name: 'Home',
-      component: () => import('@/views/Home.vue'),
       meta: { requiresAuth: false },
     },
     {

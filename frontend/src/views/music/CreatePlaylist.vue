@@ -92,8 +92,8 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="handleSubmit" :loading="submitting">创建歌单</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="submitting" :icon="Plus">创建歌单</el-button>
+          <el-button @click="handleReset" :icon="RefreshRight">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -104,7 +104,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElForm, ElFormItem } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, Picture, Document, Plus, RefreshRight } from '@element-plus/icons-vue'
 import { createPlaylist, addSongToPlaylist } from '@/api/music'
 import request from '@/api/request'
 

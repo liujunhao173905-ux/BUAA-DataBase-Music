@@ -90,7 +90,6 @@ import { ArrowLeft } from '@element-plus/icons-vue'
 import { getPlaylistDetail, updatePlaylist, addSongToPlaylist, removeSongFromPlaylist } from '@/api/music'
 import request from '@/api/request'
 import type { Playlist } from '@/api/music'
-import { fa } from 'element-plus/es/locales.mjs'
 
 const router = useRouter()
 const route = useRoute()

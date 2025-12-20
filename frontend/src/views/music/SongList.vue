@@ -101,11 +101,13 @@
 import { reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Search } from '@element-plus/icons-vue'
+import { ArrowLeft, VideoPlay, Search } from '@element-plus/icons-vue'
 import request from '@/api/request'
+import { usePlayerStore } from '@/stores/player'
 
 const route = useRoute()
 const router = useRouter()
+const playerStore = usePlayerStore()
 
 const loading = ref(false)
 const songs = ref<any[]>([])
@@ -230,9 +232,12 @@ const handleBack = () => {
   router.back()
 }
 
-const handleSongClick = (id: number) => {
+const handleSongClick = (item: any) => {
+  const id = getItemId(item)
   if (filters.searchType === 'song') {
-    router.push({ name: 'SongDetail', params: { id: String(id) } })
+    // Play song
+    playerStore.setPlaylist(songs.value)
+    playerStore.playSong(item)
   } else if (filters.searchType === 'playlist') {
     router.push({ name: 'PlaylistDetail', params: { id: String(id) } })
   } else if (filters.searchType === 'singer') {

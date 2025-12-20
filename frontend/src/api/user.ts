@@ -99,7 +99,24 @@ export const getMyFollowingSingers = (page: number = 1, pageSize: number = 10) =
 
 // 获取我收藏的歌单
 export const getMyStarredPlaylists = (page: number = 1, pageSize: number = 10) => {
-  return request.get<{ count: number; results: Playlist[] }>(`/playlists/my_starred/`, { params: { page, page_size: pageSize } }) as unknown as { data: { playlists: Playlist[]; total: number } }
+  return request.get<{ count: number; results: Playlist[] }>(`/playlists/my_starred/`, { params: { page, page_size: pageSize } })
+    .then(response => {
+      // Check if response has results (pagination) or is array
+      if (Array.isArray(response)) {
+        return {
+          data: {
+            playlists: response,
+            total: response.length
+          }
+        }
+      }
+      return {
+        data: {
+          playlists: (response as any).results || [],
+          total: (response as any).count || 0
+        }
+      }
+    })
 }
 
 // 取消收藏歌单（从music.ts导入，保持一致）

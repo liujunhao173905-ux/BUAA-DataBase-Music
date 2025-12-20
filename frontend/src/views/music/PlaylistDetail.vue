@@ -48,12 +48,24 @@
         <el-table
           :data="songs"
           style="width: 100%"
-          border
+          stripe
+          @row-dblclick="handlePlaySong"
         >
-          <el-table-column label="序号" type="index" width="80" />
+          <el-table-column label="序号" type="index" width="60" />
           <el-table-column label="歌曲名称" min-width="200">
             <template #default="scope">
-              <span @click="handleSongClick(scope.row.song_id)">{{ scope.row.song_name }}</span>
+              <div class="song-info-cell" @click="handlePlaySong(scope.row)">
+                <div class="cover-wrapper">
+                  <el-image 
+                    v-if="scope.row.song_cover" 
+                    :src="scope.row.song_cover" 
+                    class="song-cover-mini" 
+                    fit="cover" 
+                  />
+                  <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
+                </div>
+                <span class="song-name">{{ scope.row.song_name }}</span>
+              </div>
             </template>
           </el-table-column>
           <el-table-column label="歌手" min-width="150">
@@ -71,6 +83,13 @@
               <span class="price">{{ formatPrice(scope.row.song_price) }}</span>
             </template>
           </el-table-column>
+          <el-table-column label="操作" width="150" fixed="right">
+            <template #default="scope">
+              <el-button type="primary" link @click.stop="handlePlaySong(scope.row)">
+                <el-icon><VideoPlay /></el-icon> 播放
+              </el-button>
+            </template>
+          </el-table-column>
         </el-table>
         
         <div v-if="songs.length === 0" class="empty-songs">
@@ -85,13 +104,15 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, VideoPlay } from '@element-plus/icons-vue'
+import { ArrowLeft, VideoPlay, Download } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { useAuthStore } from '@/stores/auth'
+import { usePlayerStore } from '@/stores/player'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const playerStore = usePlayerStore()
 
 const loading = ref(true)
 const playlist = ref<any>({ song_count: 0 })
@@ -209,10 +230,13 @@ const handlePlayAll = () => {
     ElMessage.warning('歌单中暂无歌曲')
     return
   }
-  // 这里可以添加播放全部歌曲的逻辑
-  ElMessage.success(`开始播放 ${playlist.value.playlist_name} 中的全部歌曲`)
-  // 例如：调用音乐播放器组件播放所有歌曲
-  console.log('播放全部歌曲:', songs.value)
+  playerStore.setPlaylist(songs.value)
+  playerStore.playSong(songs.value[0])
+}
+
+const handlePlaySong = (song: any) => {
+  playerStore.setPlaylist(songs.value)
+  playerStore.playSong(song)
 }
 </script>
 
@@ -309,5 +333,51 @@ const handlePlayAll = () => {
 .price {
   color: #f56c6c;
   font-weight: bold;
+}
+
+.song-info-cell {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.cover-wrapper {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.song-cover-mini {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hover-play {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: white;
+}
+
+.song-info-cell:hover .hover-play {
+  opacity: 1;
+}
+
+.song-name {
+  font-weight: 500;
+  color: #303133;
 }
 </style>

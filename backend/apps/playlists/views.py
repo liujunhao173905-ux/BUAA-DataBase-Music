@@ -5,7 +5,7 @@ from rest_framework import status, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from django.db.models import Q, F, Max
+from django.db.models import Q, F, Max, Count
 from .models import Playlist, PlaylistSong, StarPlaylist
 from .serializers import (
     SongSerializer,
@@ -164,6 +164,43 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             'message': '添加成功',
             'playlist_song': PlaylistSongSerializer(playlist_song).data
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def recommend(self, request):
+        """推荐歌单（按收藏量排序）"""
+        playlists = Playlist.objects.filter(is_active=True).annotate(
+            star_count=Count('starred_by')
+        ).order_by('-star_count')[:10]
+        
+        serializer = self.get_serializer(playlists, many=True)
+        return Response({'data': {'playlists': serializer.data}})
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def my_starred(self, request):
+        """获取当前用户收藏的歌单"""
+        star_playlists = StarPlaylist.objects.filter(user=request.user)\
+            .select_related('playlist', 'playlist__playlist_creator')\
+            .order_by('-star_time')
+            
+        page = self.paginate_queryset(star_playlists)
+        if page is not None:
+            playlists = [item.playlist for item in page]
+            serializer = self.get_serializer(playlists, many=True)
+            return Response({
+                'data': {
+                    'playlists': serializer.data,
+                    'total': self.paginator.page.paginator.count
+                }
+            })
+            
+        playlists = [item.playlist for item in star_playlists]
+        serializer = self.get_serializer(playlists, many=True)
+        return Response({
+            'data': {
+                'playlists': serializer.data,
+                'total': star_playlists.count()
+            }
+        })
     
     @action(detail=True, methods=['delete'], permission_classes=[permissions.IsAuthenticated])
     def remove_song(self, request, pk=None):
@@ -253,35 +290,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         else:
             return Response({'error': '未收藏该歌单'}, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
-    def my_starred(self, request):
-        """获取用户收藏的歌单"""
-        starred_playlists = StarPlaylist.objects.filter(
-            user=request.user
-        ).select_related('playlist').order_by('-star_time')
-        
-        # 添加分页支持
-        page = self.paginate_queryset(starred_playlists)
-        if page is not None:
-            # 序列化数据
-            playlists = [item.playlist for item in page]
-            serializer = PlaylistSerializer(playlists, many=True)
-            return Response({
-                'data': {
-                    'playlists': serializer.data,
-                    'total': self.paginator.page.paginator.count
-                }
-            })
-        
-        playlists = [item.playlist for item in starred_playlists]
-        serializer = PlaylistSerializer(playlists, many=True)
-        return Response({
-            'data': {
-                'playlists': serializer.data,
-                'total': starred_playlists.count()
-            }
-        })
-    
+
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def my_playlists(self, request):
         """获取当前用户创建的歌单"""
@@ -304,18 +313,6 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             }
         })
     
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
-    def starred(self, request):
-        """获取当前用户收藏的歌单"""
-        star_playlists = StarPlaylist.objects.filter(user=request.user).select_related('playlist')
-        playlists = [star_playlist.playlist for star_playlist in star_playlists]
-        serializer = self.get_serializer(playlists, many=True)
-        return Response({
-            'data': {
-                'playlists': serializer.data,
-                'total': len(playlists)
-            }
-        })
     
     @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def check_star(self, request, pk=None):

@@ -1,14 +1,15 @@
 <template>
   <div class="my-songs-container">
-    <el-card class="my-songs-card">
+    <el-card class="my-songs-card" :class="{ 'no-border': isEmbedded }">
       <template #header>
         <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 16px;" v-if="!isEmbedded">
             <el-button type="default" @click="handleBack">
               <el-icon><ArrowLeft /></el-icon> 返回
             </el-button>
             <h2>我的歌曲</h2>
           </div>
+          <div v-else></div> <!-- Spacer -->
           <el-button type="primary" @click="handleUploadSong">上传歌曲</el-button>
         </div>
       </template>
@@ -76,6 +77,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { getMySongs, deleteSong } from '@/api/music'
 import type { Song } from '@/api/music'
+
+const props = defineProps<{
+  isEmbedded?: boolean
+}>()
 
 const router = useRouter()
 const songs = ref<Song[]>([])
@@ -180,6 +185,11 @@ onMounted(() => {
 
 .my-songs-card {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.my-songs-card.no-border {
+  border: none;
+  box-shadow: none;
 }
 
 .card-header {

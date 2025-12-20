@@ -128,7 +128,7 @@ class SongViewSet(viewsets.ModelViewSet):
             raise permissions.PermissionDenied('无权删除此歌曲')
     
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def star(self, request, pk=None):
+    def star(self, request, song_id=None):
         """收藏歌曲"""
         song = self.get_object()
         star_song, created = StarSong.objects.get_or_create(
@@ -144,7 +144,7 @@ class SongViewSet(viewsets.ModelViewSet):
             return Response({'message': '已经收藏过该歌曲'}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['delete'], permission_classes=[permissions.IsAuthenticated])
-    def unstar(self, request, pk=None):
+    def unstar(self, request, song_id=None):
         """取消收藏"""
         song = self.get_object()
         star_song = StarSong.objects.filter(user=request.user, song=song).first()
@@ -155,7 +155,7 @@ class SongViewSet(viewsets.ModelViewSet):
             return Response({'error': '未收藏该歌曲'}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def buy(self, request, pk=None):
+    def buy(self, request, song_id=None):
         """购买歌曲"""
         song = self.get_object()
         
@@ -178,7 +178,57 @@ class SongViewSet(viewsets.ModelViewSet):
             'message': '购买成功',
             'buy_song': BuySongSerializer(buy_song).data
         }, status=status.HTTP_201_CREATED)
-    
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def starred(self, request):
+        """获取当前用户收藏的歌曲"""
+        # 获取用户收藏的歌曲，按收藏时间倒序
+        star_songs = StarSong.objects.filter(user=request.user)\
+            .select_related('song', 'song__song_singer')\
+            .order_by('-star_time')
+        
+        # 支持分页
+        page = self.paginate_queryset(star_songs)
+        if page is not None:
+            songs = [item.song for item in page]
+            serializer = self.get_serializer(songs, many=True)
+            return self.get_paginated_response(serializer.data)
+            
+        songs = [item.song for item in star_songs]
+        serializer = self.get_serializer(songs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def bought(self, request):
+        """获取当前用户购买的歌曲"""
+        # 获取用户购买的歌曲，按购买时间倒序
+        # Assuming BuySong has created_at or similar, let's check model again or use buy_song_id desc
+        buy_songs = BuySong.objects.filter(user=request.user)\
+            .select_related('song', 'song__song_singer')\
+            .order_by('-buy_song_id')
+        
+        # 支持分页
+        page = self.paginate_queryset(buy_songs)
+        if page is not None:
+            songs = [item.song for item in page]
+            serializer = self.get_serializer(songs, many=True)
+            return self.get_paginated_response(serializer.data)
+            
+        songs = [item.song for item in buy_songs]
+        serializer = self.get_serializer(songs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def recommend(self, request):
+
+        """推荐歌曲（按收藏量排序）"""
+        songs = Song.objects.filter(is_active=True).annotate(
+            star_count=Count('starred_by')
+        ).order_by('-star_count')[:10]
+        
+        serializer = self.get_serializer(songs, many=True)
+        return Response(serializer.data)
+
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def my_songs(self, request):
         """获取当前歌手上传的歌曲"""
@@ -197,23 +247,6 @@ class SongViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(songs, many=True)
         return Response(serializer.data)
     
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
-    def starred(self, request):
-        """获取当前用户收藏的歌曲"""
-        star_songs = StarSong.objects.filter(user=request.user).select_related('song')
-        # 只返回已审核的歌曲
-        songs = [star_song.song for star_song in star_songs if star_song.song.is_active]
-        serializer = self.get_serializer(songs, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
-    def bought(self, request):
-        """获取当前用户购买的歌曲"""
-        buy_songs = BuySong.objects.filter(user=request.user).select_related('song')
-        # 只返回已审核的歌曲
-        songs = [buy_song.song for buy_song in buy_songs if buy_song.song.is_active]
-        serializer = self.get_serializer(songs, many=True)
-        return Response(serializer.data)
 
 
 class SongStatisticsView(APIView):

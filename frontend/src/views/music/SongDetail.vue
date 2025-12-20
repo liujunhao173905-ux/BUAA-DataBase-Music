@@ -31,6 +31,18 @@
 
             <div class="action-buttons">
               <div v-if="song.is_active">
+                <el-button 
+                  type="primary" 
+                  size="large"
+                  @click="handlePlay"
+                >
+                  <el-icon style="margin-right: 4px">
+                    <VideoPause v-if="isPlayingThisSong" />
+                    <VideoPlay v-else />
+                  </el-icon>
+                  {{ isPlayingThisSong ? '暂停播放' : '立即播放' }}
+                </el-button>
+
                 <el-button
                   type="warning"
                   :loading="starLoading"
@@ -39,7 +51,7 @@
                   {{ song.is_starred ? '取消收藏' : '收藏歌曲' }}
                 </el-button>
                 <el-button
-                  type="primary"
+                  type="success"
                   :disabled="song.is_bought"
                   :loading="buyLoading"
                   @click="handleBuySong"
@@ -56,13 +68,13 @@
               </div>
             </div>
 
-            <audio
+            <!-- <audio
               v-if="song.song_file"
               class="audio-player"
               :src="song.song_file"
               controls
               preload="none"
-            />
+            /> -->
           </div>
         </div>
       </template>
@@ -94,13 +106,15 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, VideoPlay, VideoPause } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { useAuthStore } from '@/stores/auth'
+import { usePlayerStore } from '@/stores/player'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const playerStore = usePlayerStore()
 
 const song = ref<any | null>(null)
 const loading = ref(false)
@@ -207,6 +221,16 @@ const fetchSongDetail = async () => {
 //     playListsLoading.value = false
 //   }
 // }
+
+const isPlayingThisSong = computed(() => {
+  return playerStore.currentSong?.song_id === song.value?.song_id && playerStore.isPlaying
+})
+
+const handlePlay = () => {
+  if (song.value) {
+    playerStore.playSong(song.value)
+  }
+}
 
 const ensureLoggedIn = () => {
   if (authStore.isAuthenticated) return true

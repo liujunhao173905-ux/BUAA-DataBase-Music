@@ -1,134 +1,138 @@
 <template>
-  <div class="my-bought-songs">
-    <router-link to="/home" style="text-decoration: none; margin-right: 20px;">
-      <h1 style="display: inline-block; margin: 0; color: #409eff; margin-bottom: 20px;">音乐平台</h1>
-    </router-link>
-    
-    <el-card class="bought-songs-card">
+  <div class="my-bought-songs-container">
+    <el-card class="my-bought-songs-card" :class="{ 'no-border': isEmbedded }">
       <template #header>
         <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <el-button type="default" @click="handleBack">
-              <el-icon><ArrowLeft /></el-icon> 返回
+          <div style="display: flex; align-items: center; gap: 16px;" v-if="!isEmbedded">
+            <el-button type="default" @click="handleBack" circle>
+              <el-icon><ArrowLeft /></el-icon>
             </el-button>
             <h2>我的购买</h2>
           </div>
+          <div v-else></div> <!-- Spacer -->
+          
+          <el-button type="primary" round @click="handlePlayAll" :disabled="songs.length === 0">
+            <el-icon class="el-icon--left"><VideoPlay /></el-icon> 播放全部
+          </el-button>
         </div>
       </template>
       
       <div class="song-card" v-loading="loading">
-      <div v-if="songs.length > 0" class="song-list">
-        <el-table
-          :data="songs"
-          style="width: 100%"
-          border
-        >
-          <el-table-column prop="song_name" label="歌曲名称" width="200">
-            <template #default="scope">
-              <span class="song-name" @click="handleSongClick(scope.row)">{{ scope.row.song_name }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="song_singer_name" label="歌手" width="120"></el-table-column>
-          <el-table-column prop="song_duration" label="时长" width="100"></el-table-column>
-          <el-table-column prop="song_price" label="价格" width="100">
-            <template #default="scope">
-              {{ formatPrice(scope.row.song_price) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="scope">
-              <el-button
-                type="primary"
-                size="small"
-                @click="handleSongClick(scope.row)"
-              >
-                试听
-              </el-button>
-              <el-button
-                type="success"
-                size="small"
-                @click="handleToggleStar(scope.row)"
-              >
-                {{ scope.row.is_starred ? '取消收藏' : '收藏' }}
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+        <div v-if="songs.length > 0" class="song-list">
+          <el-table :data="songs" stripe style="width: 100%" @row-dblclick="handlePlay">
+            <el-table-column type="index" width="50" />
+            <el-table-column prop="song_name" label="歌曲名称" min-width="200">
+              <template #default="scope">
+                <div class="song-info" @click="handlePlay(scope.row)" style="cursor: pointer;">
+                  <div class="cover-wrapper">
+                    <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
+                    <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
+                  </div>
+                  <span class="song-name">{{ scope.row.song_name }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="song_singer_name" label="歌手" width="150" />
+            <el-table-column prop="song_duration" label="时长" width="100">
+               <template #default="scope">
+                  {{ formatDuration(scope.row.song_duration) }}
+               </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" fixed="right">
+              <template #default="scope">
+                <el-button type="primary" size="small" @click.stop="handlePlay(scope.row)" :icon="VideoPlay" plain>播放</el-button>
+                <el-button type="success" size="small" @click.stop="handleDownload(scope.row)" :icon="Download" plain>下载</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+
+        </div>
       </div>
-      
-      <el-empty v-else description="暂无购买歌曲" />
-    </div>
-  </el-card>
+
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import request from '@/api/request'
-import { ArrowLeft } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
-const router = useRouter()
-const loading = ref(false)
-const songs = ref<any[]>([])
+import { ElMessage } from 'element-plus'
+import { ArrowLeft, VideoPlay, Download } from '@element-plus/icons-vue'
+import { getMyBoughtSongs, type Song } from '@/api/music'
+import { usePlayerStore } from '@/stores/player'
 
-const formatPrice = (price: any) => {
-  const numPrice = Number(price)
-  if (!price || isNaN(numPrice)) return '免费'
-  return `¥${numPrice.toFixed(2)}`
+const props = defineProps<{
+  isEmbedded?: boolean
+}>()
+
+const router = useRouter()
+const playerStore = usePlayerStore()
+
+const songs = ref<Song[]>([])
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const loading = ref(false)
+
+const formatDuration = (seconds: number) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-const fetchBoughtSongs = async () => {
-  loading.value = true
+const fetchSongs = async () => {
   try {
-    const response = await request.get('/music/songs/bought/')
-    songs.value = response
-    
-    // 为了提供更好的用户体验，获取已收藏状态
-    await fetchStarredSongsStatus()
+    loading.value = true
+    const response = await getMyBoughtSongs(currentPage.value, pageSize.value)
+    songs.value = response.data.songs
+    total.value = response.data.total
   } catch (error) {
-    ElMessage.error('加载购买歌曲失败')
-    console.error('Failed to fetch bought songs:', error)
+    ElMessage.error('获取已购买歌曲失败')
+    console.error('获取已购买歌曲失败:', error)
   } finally {
     loading.value = false
   }
 }
 
-const fetchStarredSongsStatus = async () => {
-  try {
-    const response = await request.get('/music/songs/starred/')
-    const starredSongs = response
-    
-    // 标记已收藏状态
-    songs.value.forEach(song => {
-      song.is_starred = starredSongs.some((s: any) => s.song_id === song.song_id)
-    })
-  } catch (error) {
-    console.error('Failed to fetch starred status:', error)
-    // 不影响主功能
+const handlePlay = (song: Song) => {
+  playerStore.setPlaylist(songs.value)
+  playerStore.playSong(song)
+}
+
+const handlePlayAll = () => {
+  if (songs.value.length > 0) {
+    playerStore.setPlaylist(songs.value)
+    playerStore.playSong(songs.value[0])
   }
 }
 
-const handleSongClick = (song: any) => {
-  router.push(`/songs/${song.song_id}`)
+const handleDownload = (song: Song) => {
+  if (song.song_file) {
+    window.open(song.song_file, '_blank')
+  } else {
+    ElMessage.warning('暂无下载链接')
+  }
 }
 
-const handleToggleStar = async (song: any) => {
-  try {
-    if (song.is_starred) {
-      // 取消收藏
-      await request.delete(`/music/songs/${song.song_id}/unstar/`)
-      song.is_starred = false
-      ElMessage.success('取消收藏成功')
-    } else {
-      // 添加收藏
-      await request.post(`/music/songs/${song.song_id}/star/`)
-      song.is_starred = true
-      ElMessage.success('收藏成功')
-    }
-  } catch (error) {
-    ElMessage.error('操作失败，请稍后重试')
-  }
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  fetchSongs()
+}
+
+const handleCurrentChange = (current: number) => {
+  currentPage.value = current
+  fetchSongs()
 }
 
 const handleBack = () => {
@@ -136,25 +140,80 @@ const handleBack = () => {
 }
 
 onMounted(() => {
-  fetchBoughtSongs()
+  fetchSongs()
 })
 </script>
 
 <style scoped>
-.my-bought-songs {
-  padding: 24px;
+.my-bought-songs-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-.song-card {
-  margin-top: 16px;
+.my-bought-songs-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.my-bought-songs-card.no-border {
+  border: none;
+  box-shadow: none;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.song-info {
+  display: flex;
+  align-items: center;
+}
+
+.cover-wrapper {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.song-cover {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hover-play {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: white;
+}
+
+.song-info:hover .hover-play {
+  opacity: 1;
 }
 
 .song-name {
-  cursor: pointer;
-  color: #409EFF;
+  font-weight: 500;
+  color: #303133;
 }
 
-.song-name:hover {
-  text-decoration: underline;
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
 }
 </style>
