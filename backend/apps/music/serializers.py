@@ -50,11 +50,9 @@ class SongSerializer(serializers.ModelSerializer):
     
     def get_buy_count(self, obj):
         """获取购买数"""
-        print('debug1')
         return obj.bought_by.count()
     
     def get_bought_price(self, obj):
-        print('debug2')
         buy_map = self.context.get('buy_map', {})
         return buy_map.get(obj.song_id, None)
 

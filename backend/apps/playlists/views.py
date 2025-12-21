@@ -70,7 +70,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         # 用户可以看到自己的所有歌单
         elif self.request.user.is_authenticated:
             queryset = queryset.filter(
-                Q(playlist_status=0) | Q(playlist_creator=self.request.user)
+                Q(playlist_status=1) | Q(playlist_creator=self.request.user)
             )
         
         return queryset.order_by('-playlist_createtime')
@@ -186,21 +186,11 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         if page is not None:
             playlists = [item.playlist for item in page]
             serializer = self.get_serializer(playlists, many=True)
-            return Response({
-                'data': {
-                    'playlists': serializer.data,
-                    'total': self.paginator.page.paginator.count
-                }
-            })
+            return self.get_paginated_response(serializer.data)
             
         playlists = [item.playlist for item in star_playlists]
         serializer = self.get_serializer(playlists, many=True)
-        return Response({
-            'data': {
-                'playlists': serializer.data,
-                'total': star_playlists.count()
-            }
-        })
+        return Response(serializer.data)
     
     @action(detail=True, methods=['delete'], permission_classes=[permissions.IsAuthenticated])
     def remove_song(self, request, pk=None):
