@@ -78,7 +78,7 @@
             @row-dblclick="handlePlaySong"
           >
             <el-table-column label="序号" type="index" width="60" align="center" />
-            <el-table-column label="歌曲名称" min-width="200">
+            <el-table-column label="歌曲名称" min-width="200" align="center">
               <template #default="scope">
                 <div class="song-info-cell" @click="handlePlaySong(scope.row)">
                   <div class="cover-wrapper">
@@ -94,17 +94,17 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="歌手" min-width="150">
+            <el-table-column label="歌手" min-width="150" align="center">
               <template #default="scope">
                 <span class="singer-name">{{ scope.row.song_singer_name }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="时长" width="100">
+            <el-table-column label="时长" width="100" align="center">
               <template #default="scope">
                 <span class="duration">{{ formatDuration(scope.row.song_duration) }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="价格" width="100">
+            <el-table-column label="价格" width="100" align="center">
               <template #default="scope">
                 <span class="price">{{ formatPrice(scope.row.song_price) }}</span>
               </template>
@@ -259,13 +259,7 @@ const handleDetail = (song: Song) => {
 }
 
 const handleBack = () => {
-  const fromPath = sessionStorage.getItem('fromPath')
-  if (fromPath === '/my/playlists') {
-    sessionStorage.removeItem('fromPath')
-    router.push('/my/playlists')
-  } else {
-    router.back()
-  }
+  router.back()
 }
 
 const handlePlayAll = () => {

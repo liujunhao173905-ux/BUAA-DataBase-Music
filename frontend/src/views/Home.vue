@@ -1,178 +1,180 @@
 <template>
-  <div class="home-container">
-    <div class="search-bar">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索歌曲、歌手、歌单..."
-        class="search-input"
-        @keyup.enter="handleSearch"
-        clearable
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-    </div>
-
-    <!-- Banner Section -->
-    <div class="banner-section" v-if="!loadingSongs && songs.length > 0">
-      <el-carousel :interval="4000" type="card" height="150px">
-        <el-carousel-item v-for="item in bannerSongs" :key="item.song_id" @click="handleSongClick(item)">
-          <div class="banner-item" :style="{ backgroundImage: `url(${item.song_cover})` }">
-            <div class="banner-content">
-              <h3>{{ item.song_name }}</h3>
-              <p>{{ item.song_singer_name }}</p>
-            </div>
-            <div class="play-icon-overlay" @click.stop="handlePlay(item)">
-              <el-icon><VideoPlay /></el-icon>
-            </div>
-          </div>
-        </el-carousel-item>
-      </el-carousel>
-    </div>
-
-    <div class="section">
-      <div class="section-header">
-        <div class="title-with-icon">
-          <el-icon class="section-icon" color="#F56C6C"><Headset /></el-icon>
-          <h2>推荐歌曲</h2>
-        </div>
-        <span class="more" @click="$router.push('/songs')">更多 <el-icon><ArrowRight /></el-icon></span>
-      </div>
-      <div class="scroll-container" v-loading="loadingSongs">
-        <div 
-          v-for="song in songs" 
-          :key="song.song_id" 
-          class="scroll-item song-item"
-          @click="handleSongClick(song)"
+  <div class="out-container">
+    <div class="home-container">
+      <div class="search-bar">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索歌曲、歌手、歌单..."
+          class="search-input"
+          @keyup.enter="handleSearch"
+          clearable
         >
-          <div class="image-wrapper">
-            <el-image :src="song.song_cover" class="cover" fit="cover" lazy>
-               <template #error>
-                 <div class="image-placeholder"><el-icon><Headset /></el-icon></div>
-               </template>
-            </el-image>
-            <div class="play-overlay" @click.stop="handlePlay(song)">
-               <el-icon><VideoPlay /></el-icon>
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+      </div>
+
+      <!-- Banner Section -->
+      <div class="banner-section" v-if="!loadingSongs && songs.length > 0">
+        <el-carousel :interval="4000" type="card" height="220px">
+          <el-carousel-item v-for="item in bannerSongs" :key="item.song_id" @click="handleSongClick(item)">
+            <div class="banner-item" :style="{ backgroundImage: `url(${item.song_cover})` }">
+              <div class="banner-content">
+                <h3>{{ item.song_name }}</h3>
+                <p>{{ item.song_singer_name }}</p>
+              </div>
+              <div class="play-icon-overlay" @click.stop="handlePlay(item)">
+                <el-icon><VideoPlay /></el-icon>
+              </div>
+            </div>
+          </el-carousel-item>
+        </el-carousel>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="title-with-icon">
+            <el-icon class="section-icon" color="#F56C6C"><Headset /></el-icon>
+            <h2>推荐歌曲</h2>
+          </div>
+          <span class="more" @click="$router.push('/songs')">更多 <el-icon><ArrowRight /></el-icon></span>
+        </div>
+        <div class="scroll-container" v-loading="loadingSongs">
+          <div 
+            v-for="song in songs.slice(0, 6)" 
+            :key="song.song_id" 
+            class="scroll-item song-item"
+            @click="handleSongClick(song)"
+          >
+            <div class="image-wrapper">
+              <el-image :src="song.song_cover" class="cover" fit="cover" lazy>
+                <template #error>
+                  <div class="image-placeholder"><el-icon><Headset /></el-icon></div>
+                </template>
+              </el-image>
+              <div class="play-overlay" @click.stop="handlePlay(song)">
+                <el-icon><VideoPlay /></el-icon>
+              </div>
+            </div>
+            <div class="info">
+              <div class="name text-ellipsis">{{ song.song_name }}</div>
+              <div class="singer text-ellipsis">{{ song.song_singer_name }}</div>
             </div>
           </div>
-          <div class="info">
-            <div class="name text-ellipsis">{{ song.song_name }}</div>
-            <div class="singer text-ellipsis">{{ song.song_singer_name }}</div>
-          </div>
+          <el-empty v-if="!loadingSongs && songs.length === 0" description="暂无推荐" />
         </div>
-        <el-empty v-if="!loadingSongs && songs.length === 0" description="暂无推荐" />
       </div>
-    </div>
 
-    <div class="section">
-      <div class="section-header">
-        <div class="title-with-icon">
-          <el-icon class="section-icon" color="#67C23A"><Timer /></el-icon>
-          <h2>最新发布</h2>
+      <div class="section">
+        <div class="section-header">
+          <div class="title-with-icon">
+            <el-icon class="section-icon" color="#67C23A"><Timer /></el-icon>
+            <h2>最新发布</h2>
+          </div>
+          <span class="more" @click="$router.push('/songs')">更多 <el-icon><ArrowRight /></el-icon></span>
         </div>
-        <span class="more" @click="$router.push('/songs')">更多 <el-icon><ArrowRight /></el-icon></span>
-      </div>
-      <div class="scroll-container" v-loading="loadingNewSongs">
-        <div 
-          v-for="song in newSongs" 
-          :key="song.song_id" 
-          class="scroll-item song-item"
-          @click="handleSongClick(song)"
-        >
-          <div class="image-wrapper">
-            <el-image :src="song.song_cover" class="cover" fit="cover" lazy>
-               <template #error>
-                 <div class="image-placeholder"><el-icon><Headset /></el-icon></div>
-               </template>
-            </el-image>
-            <div class="play-overlay" @click.stop="handlePlay(song)">
-               <el-icon><VideoPlay /></el-icon>
+        <div class="scroll-container" v-loading="loadingNewSongs">
+          <div 
+            v-for="song in newSongs.slice(0, 6)" 
+            :key="song.song_id" 
+            class="scroll-item song-item"
+            @click="handleSongClick(song)"
+          >
+            <div class="image-wrapper">
+              <el-image :src="song.song_cover" class="cover" fit="cover" lazy>
+                <template #error>
+                  <div class="image-placeholder"><el-icon><Headset /></el-icon></div>
+                </template>
+              </el-image>
+              <div class="play-overlay" @click.stop="handlePlay(song)">
+                <el-icon><VideoPlay /></el-icon>
+              </div>
+            </div>
+            <div class="info">
+              <div class="name text-ellipsis">{{ song.song_name }}</div>
+              <div class="singer text-ellipsis">{{ song.song_singer_name }}</div>
             </div>
           </div>
-          <div class="info">
-            <div class="name text-ellipsis">{{ song.song_name }}</div>
-            <div class="singer text-ellipsis">{{ song.song_singer_name }}</div>
-          </div>
+          <el-empty v-if="!loadingNewSongs && newSongs.length === 0" description="暂无最新歌曲" />
         </div>
-        <el-empty v-if="!loadingNewSongs && newSongs.length === 0" description="暂无最新歌曲" />
       </div>
-    </div>
 
-    <div class="section">
-      <div class="section-header">
-        <div class="title-with-icon">
-          <el-icon class="section-icon" color="#E6A23C"><Collection /></el-icon>
-          <h2>推荐歌单</h2>
+      <div class="section">
+        <div class="section-header">
+          <div class="title-with-icon">
+            <el-icon class="section-icon" color="#E6A23C"><Collection /></el-icon>
+            <h2>推荐歌单</h2>
+          </div>
+          <span class="more" @click="$router.push('/songs?searchType=playlist')">更多 <el-icon><ArrowRight /></el-icon></span>
         </div>
-        <span class="more" @click="$router.push('/songs?searchType=playlist')">更多 <el-icon><ArrowRight /></el-icon></span>
-      </div>
-      <div class="scroll-container" v-loading="loadingPlaylists">
-         <div 
-          v-for="playlist in playlists" 
-          :key="playlist.playlist_id" 
-          class="scroll-item playlist-item"
-          @click="handlePlaylistClick(playlist)"
-        >
-          <div class="image-wrapper">
-            <el-image :src="playlist.playlist_cover" class="cover" fit="cover" lazy>
-               <template #error>
-                 <div class="image-placeholder"><el-icon><Collection /></el-icon></div>
-               </template>
-            </el-image>
-            <div class="play-overlay">
-               <el-icon><View /></el-icon>
+        <div class="scroll-container" v-loading="loadingPlaylists">
+          <div 
+            v-for="playlist in playlists.slice(0, 6)" 
+            :key="playlist.playlist_id" 
+            class="scroll-item playlist-item"
+            @click="handlePlaylistClick(playlist)"
+          >
+            <div class="image-wrapper">
+              <el-image :src="playlist.playlist_cover" class="cover" fit="cover" lazy>
+                <template #error>
+                  <div class="image-placeholder"><el-icon><Collection /></el-icon></div>
+                </template>
+              </el-image>
+              <div class="play-overlay">
+                <el-icon><View /></el-icon>
+              </div>
+            </div>
+            <div class="info">
+              <div class="name text-ellipsis">{{ playlist.playlist_name }}</div>
+              <div class="count text-ellipsis">{{ playlist.song_count || 0 }}首</div>
             </div>
           </div>
-          <div class="info">
-            <div class="name text-ellipsis">{{ playlist.playlist_name }}</div>
-            <div class="count text-ellipsis">{{ playlist.song_count || 0 }}首</div>
-          </div>
+          <el-empty v-if="!loadingPlaylists && playlists.length === 0" description="暂无推荐" />
         </div>
-        <el-empty v-if="!loadingPlaylists && playlists.length === 0" description="暂无推荐" />
       </div>
-    </div>
 
-    <!-- 推荐歌手 Section -->
-    <div class="section">
-      <div class="section-header">
-        <div class="title-with-icon">
-          <el-icon class="section-icon" color="#409EFF"><Mic /></el-icon>
-          <h2>热门歌手</h2>
-        </div>
-        <!-- <span class="more">更多 <el-icon><ArrowRight /></el-icon></span> -->
-      </div>
-      <div class="scroll-container" v-loading="loadingSingers">
-        <div 
-          v-for="singer in singers" 
-          :key="singer.user_id" 
-          class="scroll-item singer-item"
-          @click="handleSingerClick(singer)"
-        >
-          <div class="image-wrapper round">
-            <el-image :src="singer.user_avatar" class="cover" fit="cover" lazy>
-               <template #error>
-                 <div class="image-placeholder"><el-icon><User /></el-icon></div>
-               </template>
-            </el-image>
+      <!-- 推荐歌手 Section -->
+      <div class="section">
+        <div class="section-header">
+          <div class="title-with-icon">
+            <el-icon class="section-icon" color="#409EFF"><Mic /></el-icon>
+            <h2>热门歌手</h2>
           </div>
-          <div class="info">
-            <div class="name text-ellipsis">{{ singer.user_name }}</div>
-            <div class="count text-ellipsis">粉丝: {{ singer.followers_count || 0 }}</div>
-          </div>
+          <!-- <span class="more">更多 <el-icon><ArrowRight /></el-icon></span> -->
         </div>
-        <el-empty v-if="!loadingSingers && singers.length === 0" description="暂无推荐" />
-      </div>
-      <div class="pagination-wrapper" v-if="singerTotal > 0">
-        <el-pagination
-          v-model:current-page="singerPage"
-          :page-size="singerPageSize"
-          :total="singerTotal"
-          layout="prev, pager, next"
-          @current-change="handleSingerPageChange"
-          background
-          small
-        />
+        <div class="scroll-container" v-loading="loadingSingers">
+          <div 
+            v-for="singer in singers.slice(0, 6)" 
+            :key="singer.user_id" 
+            class="scroll-item singer-item"
+            @click="handleSingerClick(singer)"
+          >
+            <div class="image-wrapper round">
+              <el-image :src="singer.user_avatar" class="cover" fit="cover" lazy>
+                <template #error>
+                  <div class="image-placeholder"><el-icon><User /></el-icon></div>
+                </template>
+              </el-image>
+            </div>
+            <div class="info">
+              <div class="name text-ellipsis">{{ singer.user_name }}</div>
+              <div class="count text-ellipsis">粉丝: {{ singer.followers_count || 0 }}</div>
+            </div>
+          </div>
+          <el-empty v-if="!loadingSingers && singers.length === 0" description="暂无推荐" />
+        </div>
+        <!-- <div class="pagination-wrapper" v-if="singerTotal > 0">
+          <el-pagination
+            v-model:current-page="singerPage"
+            :page-size="singerPageSize"
+            :total="singerTotal"
+            layout="prev, pager, next"
+            @current-change="handleSingerPageChange"
+            background
+            small
+          />
+        </div> -->
       </div>
     </div>
   </div>
@@ -240,10 +242,10 @@ const loadSingersData = async () => {
   }
 }
 
-const handleSingerPageChange = (page: number) => {
-  singerPage.value = page
-  loadSingersData()
-}
+// const handleSingerPageChange = (page: number) => {
+//   singerPage.value = page
+//   loadSingersData()
+// }
 
 const loadData = async () => {
   loadingSongs.value = true
@@ -284,9 +286,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.out-container {
+  background-color: #f5f5f5;
+}
+
 .home-container {
-  padding: 20px;
+  padding: 25px;
   padding-bottom: 80px;
+  max-width: 1030px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  box-sizing: border-box;
+  margin: 0 auto;
 }
 
 .search-bar {
@@ -296,7 +307,6 @@ onMounted(() => {
   z-index: 100;
   background-color: #f5f5f5; /* Match page bg if needed, or white */
   padding: 10px 0;
-  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
 }
 
@@ -339,7 +349,7 @@ onMounted(() => {
 .scroll-container {
   display: flex;
   overflow-x: auto;
-  gap: 16px;
+  gap: 24px;
   padding-bottom: 10px;
   scrollbar-width: none; /* Firefox */
 }
@@ -350,8 +360,11 @@ onMounted(() => {
 
 .scroll-item {
   flex: 0 0 140px;
+  width: 140px;
+  max-width: 140px;
   cursor: pointer;
   transition: transform 0.2s;
+  overflow: hidden;
 }
 
 .scroll-item:hover {

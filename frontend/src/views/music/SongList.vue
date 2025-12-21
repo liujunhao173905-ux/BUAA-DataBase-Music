@@ -49,45 +49,42 @@
     <el-skeleton v-if="loading" :rows="6" animated />
 
     <div v-else>
-      <el-row v-if="songs.length" :gutter="20">
-        <el-col
+      <div v-if="songs.length" class="songs-grid">
+        <el-card 
           v-for="item in songs"
           :key="getItemKey(item)"
-          :xs="12"
-          :sm="8"
-          :md="6"
-          :lg="4"
+          class="song-card" 
+          :body-style="{ padding: '0px' }"
+          @click="handleSongClick(item)"
         >
-          <el-card class="song-card" @click="handleSongClick(item)">
-            <div class="cover-container">
-              <el-image
-                :src="getItemCover(item) || ''"
-                fit="cover"
-                class="song-cover"
-              >
-                <template #error>
-                  <div class="image-slot">暂无封面</div>
-                </template>
-              </el-image>
-              <div 
-                v-if="filters.searchType === 'song'" 
-                class="play-overlay"
-                @click.stop="handlePlay(item)"
-              >
-                <el-icon><VideoPlay /></el-icon>
-              </div>
+          <div class="cover-container">
+            <el-image
+              :src="getItemCover(item) || ''"
+              fit="cover"
+              class="song-cover"
+            >
+              <template #error>
+                <div class="image-slot">暂无封面</div>
+              </template>
+            </el-image>
+            <div 
+              v-if="filters.searchType === 'song'" 
+              class="play-overlay"
+              @click.stop="handlePlay(item)"
+            >
+              <el-icon><VideoPlay /></el-icon>
             </div>
-            <div class="song-info">
-              <h3>{{ getItemName(item) }}</h3>
-              <p>{{ getItemCreator(item) }}</p>
-              <span v-if="filters.searchType === 'song'" class="price">{{ formatPrice(getItemPrice(item)) }}</span>
-              <span v-else-if="filters.searchType === 'playlist'" class="song-count">{{ item.song_count }}首歌曲</span>
-              <span v-else-if="filters.searchType === 'singer'" class="tag">{{ item.user_type_display }}</span>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-
+          </div>
+          <div class="song-info">
+            <h3>{{ getItemName(item) }}</h3>
+            <p>{{ getItemCreator(item) }}</p>
+            <span v-if="filters.searchType === 'song'" class="price">{{ formatPrice(getItemPrice(item)) }}</span>
+            <span v-else-if="filters.searchType === 'playlist'" class="song-count">{{ item.song_count }}首歌曲</span>
+            <span v-else-if="filters.searchType === 'singer'" class="tag">{{ item.user_type_display }}</span>
+          </div>
+        </el-card>
+      </div>
+      
       <el-empty v-else :description="`暂无${getSearchTypeText()}`" />
 
       <div
@@ -151,7 +148,6 @@ const fetchSongs = async (page = pagination.page) => {
   loading.value = true
   try {
     if (filters.searchType === 'song') {
-      // 搜索歌曲
       const params: Record<string, string | number> = {
         page,
         page_size: pagination.pageSize,
@@ -161,18 +157,14 @@ const fetchSongs = async (page = pagination.page) => {
       if (filters.priceMax !== null) params.price_max = filters.priceMax
 
       const response = await request.get('/music/songs/', { params })
-      // 使用类型断言来处理API响应
       const responseData = response as { results?: any[], count?: number }
-      // 直接使用后端返回的数据格式
       songs.value = responseData.results || []
       pagination.total = responseData.count || songs.value.length
     } else if (filters.searchType === 'playlist') {
-      // 获取全部歌单（空搜索 = 返回全部）
       const params: Record<string, string | number> = {
         page,
         page_size: pagination.pageSize
       }
-      // 如果用户确实输入了关键词，再带上 search
       if (filters.search) params.search = filters.search
 
       const response = await request.get('/playlists/', { params })
@@ -180,7 +172,6 @@ const fetchSongs = async (page = pagination.page) => {
       songs.value = responseData.data?.playlists || []
       pagination.total = responseData.data?.total || 0
     } else if (filters.searchType === 'singer') {
-      // 搜索歌手 - 仅在有搜索关键词时才请求
       if (filters.search) {
         const params: Record<string, string | number> = {
           page,
@@ -189,13 +180,10 @@ const fetchSongs = async (page = pagination.page) => {
         }
 
         const response = await request.get('/users/singers/', { params })
-        // 使用类型断言来处理API响应
         const responseData = response as { results?: any[], count?: number }
-        // 直接使用后端返回的数据格式
         songs.value = responseData.results || []
         pagination.total = responseData.count || songs.value.length
       } else {
-        // 没有搜索关键词时，不显示歌手
         songs.value = []
         pagination.total = 0
       }
@@ -231,7 +219,7 @@ const handlePageChange = (page: number) => {
 }
 
 const handleBack = () => {
-  router.back()
+  router.push('/home')
 }
 
 const handlePlay = (item: any) => {
@@ -243,7 +231,6 @@ const handlePlay = (item: any) => {
 
 const handleSongClick = (item: any) => {
   if (filters.searchType === 'song') {
-    // Go to detail
     if (item.song_id) {
       router.push({ name: 'SongDetail', params: { id: String(item.song_id) } })
     }
@@ -262,7 +249,6 @@ const handleSongClick = (item: any) => {
 
 const formatPrice = (price: any) => {
   const numPrice = Number(price)
-  console.log('price: ', numPrice)
   if (price === null || price === undefined || isNaN(numPrice)) {
     return '免费'
   }
@@ -287,13 +273,6 @@ const getSearchTypeText = () => {
 }
 
 const getItemKey = (item: any) => {
-  if (filters.searchType === 'song') return item.song_id
-  if (filters.searchType === 'playlist') return item.playlist_id
-  if (filters.searchType === 'singer') return item.user_id
-  return null
-}
-
-const getItemId = (item: any) => {
   if (filters.searchType === 'song') return item.song_id
   if (filters.searchType === 'playlist') return item.playlist_id
   if (filters.searchType === 'singer') return item.user_id
@@ -335,17 +314,12 @@ watch(
   { immediate: true }
 )
 
-// 监听搜索类型变化，确保切换标签时重新加载数据
 watch(
   () => filters.searchType,
   (newType, oldType) => {
-    // 只有当搜索类型真正变化时才重新加载数据
     if (newType !== oldType) {
-      // 重置页码到第一页
       pagination.page = 1
-      // 如果有搜索关键词，重新搜索对应类型的数据
       fetchSongs(1)
-      // 更新路由参数，保持搜索状态同步
       const query = { ...route.query, searchType: newType, page: '1' }
       router.push({ name: 'SongList', query })
     }
@@ -386,15 +360,30 @@ watch(
   gap: 10px;
 }
 
+/* 核心布局：Grid */
+.songs-grid {
+  display: grid;
+  /* 220px 是卡片的最小宽度。
+    如果一行能放得下更多，它会自动计算数量。
+    1fr 表示剩余空间会被卡片平分，实现两端对齐。
+  */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 30px; /* 卡片之间的间距 */
+  justify-content: space-between;
+}
+
+/* 卡片样式 */
 .song-card {
   cursor: pointer;
-  margin-bottom: 20px;
   transition: transform 0.3s, box-shadow 0.3s;
   background: rgba(255, 255, 255, 0.8);
   border: none;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  
+  /* 宽度设为 100% 以填满 Grid 分配的单元格 */
+  width: 100%;
 }
 
 .song-card:hover {
@@ -402,17 +391,24 @@ watch(
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
+/* 封面容器：实现 1:1 正方形比例 */
 .cover-container {
   position: relative;
   width: 100%;
-  height: 200px;
+  padding-top: 100%; /* 宽高比 1:1 */
+  height: 0;         /* 高度由 padding 撑开 */
 }
 
+/* 封面图片：绝对定位以适应容器 */
 .song-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
 }
 
+/* 播放遮罩 */
 .play-overlay {
   position: absolute;
   top: 0;
@@ -434,6 +430,7 @@ watch(
   opacity: 1;
 }
 
+/* 图片加载失败占位 */
 .image-slot {
   display: flex;
   align-items: center;
@@ -442,6 +439,9 @@ watch(
   height: 100%;
   background-color: #f5f5f5;
   color: #909399;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .song-info {
@@ -465,6 +465,9 @@ watch(
   margin: 0;
   color: #909399;
   font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .price {
@@ -484,6 +487,7 @@ watch(
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
+  max-width: fit-content;
 }
 
 .pagination-wrapper {
@@ -493,6 +497,3 @@ watch(
   margin-bottom: 20px;
 }
 </style>
-
-
-

@@ -14,84 +14,88 @@
 
       <div class="song-card" v-loading="loading">
         <div v-if="playlists.length > 0" class="song-list">
-          <el-table :data="playlists" stripe style="width: 100%" @row-dblclick="handleView">
-            <!-- <el-table-column prop="playlist_id" label="歌单ID" width="100" /> -->
-            <el-table-column prop="playlist_name" label="歌单名称" min-width="200">
-              <template #default="scope">
-                <div class="playlist-info" @click="handleView(scope.row)" style="cursor: pointer;">
-                  <div class="cover-wrapper">
-                    <el-image v-if="scope.row.playlist_cover" :src="scope.row.playlist_cover" class="playlist-cover" fit="cover" />
-                    <div class="hover-play"><el-icon><View /></el-icon></div>
+          
+          <div class="table-wrapper">
+            <el-table :data="playlists" stripe style="width: 100%; height: 100%" @row-dblclick="handleView">
+              <el-table-column prop="playlist_name" label="歌单名称" min-width="200" align="center">
+                <template #default="scope">
+                  <div class="playlist-info" @click="handleView(scope.row)" style="cursor: pointer;">
+                    <div class="cover-wrapper">
+                      <el-image v-if="scope.row.playlist_cover" :src="scope.row.playlist_cover" class="playlist-cover" fit="cover" />
+                      <div class="hover-play"><el-icon><View /></el-icon></div>
+                    </div>
+                    <span class="playlist-name">{{ scope.row.playlist_name }}</span>
                   </div>
-                  <span class="playlist-name">{{ scope.row.playlist_name }}</span>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column prop="playlist_intro" label="歌单介绍" min-width="300">
-               <template #default="scope">
-                  <div class="text-ellipsis" :title="scope.row.playlist_intro">{{ scope.row.playlist_intro || '-' }}</div>
-               </template>
-            </el-table-column>
-            <el-table-column prop="playlist_createtime" label="创建时间" width="180">
-              <template #default="scope">
-                {{ formatDate(scope.row.playlist_createtime) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="playlist_status" label="状态" width="120">
-              <template #default="scope">
-                <el-tag
-                  :type=statusColor(scope.row.playlist_status)>
-                  {{ statusText(scope.row.playlist_status) }}
-                </el-tag>
-              </template>
-            </el-table-column>
+                </template>
+              </el-table-column>
+              <el-table-column prop="playlist_intro" label="歌单介绍" min-width="300" align="center">
+                 <template #default="scope">
+                   <div class="text-ellipsis" :title="scope.row.playlist_intro">{{ scope.row.playlist_intro || '-' }}</div>
+                 </template>
+              </el-table-column>
+              <el-table-column prop="playlist_createtime" label="创建时间" width="180" align="center">
+                <template #default="scope">
+                  {{ formatDate(scope.row.playlist_createtime) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="playlist_status" label="状态" width="120" align="center">
+                <template #default="scope">
+                  <el-tag
+                    :type=statusColor(scope.row.playlist_status)>
+                    {{ statusText(scope.row.playlist_status) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
 
-            <el-table-column label="操作" width="250" fixed="right">
-              <template #default="scope">
-                <el-button
-                  type="primary"
-                  size="small"
-                  @click.stop="handleView(scope.row)"
-                  plain>详情</el-button>
+              <el-table-column label="操作" width="250" fixed="right" align="center">
+                <template #default="scope">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click.stop="handleView(scope.row)"
+                    plain>详情</el-button>
 
-                <el-button
-                  v-if="scope.row.playlist_status === 1 || scope.row.playlist_status === 2"
-                  type="success"
-                  size="small"
-                  @click.stop="handleEdit(scope.row)"
-                  plain>编辑</el-button>
+                  <el-button
+                    v-if="scope.row.playlist_status === 1 || scope.row.playlist_status === 2"
+                    type="success"
+                    size="small"
+                    @click.stop="handleEdit(scope.row)"
+                    plain>编辑</el-button>
 
-                <!-- 其余状态显示「已锁定」或禁用 -->
-                <el-button
-                  v-else
-                  type="info"
-                  size="small"
-                  disabled
-                  plain>编辑</el-button>
+                  <el-button
+                    v-else
+                    type="info"
+                    size="small"
+                    disabled
+                    plain>编辑</el-button>
 
-                <el-button
-                  type="danger"
-                  size="small"
-                  @click.stop="handleDelete(scope.row)"
-                  :icon="Delete" circle />
-              </template>
-            </el-table-column>
-          </el-table>
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click.stop="handleDelete(scope.row)"
+                    :icon="Delete" circle />
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+
+          <div class="pagination-container">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[10, 20, 50, 100]"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="total"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
 
         </div>
+        
+        <el-empty v-else description="暂无歌单" style="flex: 1; display: flex; justify-content: center; align-items: center;" />
       </div>
 
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
     </el-card>
   </div>
 </template>
@@ -220,26 +224,67 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 1. 容器：高度 100%，Flex 列布局 */
 .my-playlists-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
+/* 2. 卡片：占满剩余空间，限制溢出 */
 .my-playlists-card {
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(12px);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .my-playlists-card.no-border {
   border: none;
-  box-shadow: none;
   background: transparent;
 }
 
+/* 3. 卡片 Body：穿透修改，Flex 列布局 */
+:deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0 20px 20px 20px;
+}
+
+/* 4. 内容容器 */
+.song-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.song-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 5. 表格 wrapper：占据剩余高度 */
+.table-wrapper {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 表格样式微调 */
 :deep(.el-table) {
   background-color: transparent;
   --el-table-tr-bg-color: transparent;
@@ -255,6 +300,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 0;
 }
 
 .playlist-info {
@@ -322,9 +368,11 @@ onMounted(() => {
   color: #606266;
 }
 
+/* 6. 分页栏：固定底部 */
 .pagination-container {
-  margin-top: 24px;
+  margin-top: 15px;
   display: flex;
   justify-content: center;
+  flex-shrink: 0;
 }
 </style>

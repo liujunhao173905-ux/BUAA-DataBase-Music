@@ -15,7 +15,12 @@
             :md="6"
             :lg="4"
           >
-            <el-card class="playlist-card" hoverable @click="handlePlaylistClick(playlist)">
+            <el-card 
+              class="playlist-card" 
+              hoverable 
+              :body-style="{ padding: '20px' }"
+              @click="handlePlaylistClick(playlist)"
+            >
               <el-image
                 :src="playlist.playlist_cover || ''"
                 fit="cover"
@@ -155,9 +160,12 @@ onMounted(() => {
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }
 
+.starred-card :deep(.el-card__header) {
+  border-bottom: none;
+}
+
 .starred-card.no-border {
   border: none;
-  box-shadow: none;
   background: transparent;
 }
 
@@ -165,10 +173,11 @@ onMounted(() => {
   margin-bottom: 20px;
   cursor: pointer;
   border-radius: 12px;
-  border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   transition: transform 0.3s, box-shadow 0.3s;
   background: rgba(255, 255, 255, 0.8);
+  /* 注意：El-Card 的 padding 主要通过 body-style 控制，
+     但这里定义基本样式不冲突 */
 }
 
 .playlist-card:hover {
@@ -185,11 +194,13 @@ onMounted(() => {
   background-color: #f5f7fa;
   font-size: 40px;
   color: #909399;
-  border-radius: 8px;
+  border-radius: 8px; /* 稍微减小圆角以适应内部 padding */
   overflow: hidden;
 }
 
 .playlist-info {
+  /* 这里原来的 padding: 10px 0; 可以保留，
+     或者改为 margin-top: 10px 以获得更清晰的间距 */
   padding: 10px 0;
 }
 
@@ -210,7 +221,7 @@ onMounted(() => {
 }
 
 .playlist-actions {
-  margin-top: 10px;
+  margin-top: 5px; /* 稍微调整顶部间距 */
   text-align: right;
 }
 

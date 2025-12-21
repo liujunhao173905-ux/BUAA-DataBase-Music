@@ -324,11 +324,12 @@ class SongViewSet(viewsets.ModelViewSet):
         """根据用户类型和权限返回不同的查询集"""
         queryset = Song.objects.select_related('song_singer').all()
         
-        # 搜索功能 - 仅按歌曲名搜索
+        # 搜索功能
         search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(
-                Q(song_name__icontains=search)
+                Q(song_name__icontains=search) |
+                Q(song_singer__user_name__icontains=search)
             )
         
         # 按歌手筛选
@@ -465,8 +466,8 @@ class SongViewSet(viewsets.ModelViewSet):
             return Response({'error': '已经购买过该歌曲'}, status=status.HTTP_400_BAD_REQUEST)
         
         # 免费歌曲不需要购买
-        if song.song_price == 0:
-            return Response({'error': '该歌曲是免费的，无需购买'}, status=status.HTTP_400_BAD_REQUEST)
+        # if song.song_price == 0:
+        #     return Response({'error': '该歌曲是免费的，无需购买'}, status=status.HTTP_400_BAD_REQUEST)
         
         # 创建购买记录
         buy_song = BuySong.objects.create(

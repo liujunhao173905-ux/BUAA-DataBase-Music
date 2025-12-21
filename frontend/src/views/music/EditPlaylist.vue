@@ -242,7 +242,7 @@ const handleSubmit = async () => {
     }
     
     ElMessage.success('歌单修改成功！')
-    router.push('/my/playlists')
+    router.push('/my/playlists-center')
   } catch (error) {
     ElMessage.error('歌单修改失败，请重试')
     console.error('修改歌单失败:', error)

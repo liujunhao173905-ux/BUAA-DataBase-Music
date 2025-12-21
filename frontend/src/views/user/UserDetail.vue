@@ -372,7 +372,7 @@ const tableRowClassName = ({  }: { rowIndex: number }) => {
 .user-bg-pattern {
   height: 160px;
   background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
-  border-radius: 0 0 20px 20px;
+  border-radius: 0;
   opacity: 0.8;
 }
 
@@ -382,15 +382,21 @@ const tableRowClassName = ({  }: { rowIndex: number }) => {
   margin-top: -60px;
   position: relative;
   z-index: 1;
+  align-items: flex-start;
 }
 
 .avatar-wrapper {
+  margin-top: 30px;
   margin-right: 30px;
   border: 4px solid #fff;
-  border-radius: 24px;
+  border-radius: 50%; 
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   background: #fff;
   flex-shrink: 0;
+  overflow: hidden; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .info-content {

@@ -206,7 +206,7 @@ const handleSubmit = async () => {
     }
     
     ElMessage.success('歌单创建成功！歌单将在审核通过后公开')
-    router.push('/my/playlists')
+    router.push('/my/playlists-center')
   } catch (error) {
     ElMessage.error('歌单创建失败，请重试')
     console.error('创建歌单失败:', error)

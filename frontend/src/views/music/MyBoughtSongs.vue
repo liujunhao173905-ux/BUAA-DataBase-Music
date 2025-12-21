@@ -182,7 +182,6 @@ onMounted(() => {
 
 .my-bought-songs-card.no-border {
   border: none;
-  box-shadow: none;
   background: transparent;
 }
 

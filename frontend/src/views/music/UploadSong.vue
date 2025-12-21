@@ -187,7 +187,7 @@ const handleSubmit = async () => {
 
     await uploadSong(formDataToSend)
     ElMessage.success('歌曲上传成功！歌曲将在审核通过后公开')
-    router.push('/my/songs')
+    router.push('/my/music')
   } catch (error) {
     ElMessage.error('歌曲上传失败，请重试')
     console.error('上传歌曲失败:', error)

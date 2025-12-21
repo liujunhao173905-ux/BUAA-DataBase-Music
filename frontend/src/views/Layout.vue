@@ -33,7 +33,6 @@ const playerStore = usePlayerStore()
 
 <style scoped>
 .layout-container {
-  display: flex;
   flex-direction: column;
   height: 100vh;
   background-color: transparent;
@@ -86,12 +85,6 @@ const playerStore = usePlayerStore()
 
 .nav-item.active {
   color: #409eff;
-}
-
-/* Page transition */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
 }
 
 .fade-enter-from,

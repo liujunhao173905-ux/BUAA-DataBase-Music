@@ -18,59 +18,50 @@
       
       <div class="song-card" v-loading="loading">
         <div v-if="songs.length > 0" class="song-list">
-          <el-table :data="songs" stripe style="width: 100%" @row-dblclick="handleSongClick">
-            <el-table-column type="index" width="50" />
-            <el-table-column prop="song_name" label="歌曲名称" min-width="200">
-              <template #default="scope">
-                <div class="song-info" @click="handleSongClick(scope.row)" style="cursor: pointer;">
-                  <div class="cover-wrapper">
-                    <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
-                    <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
+          <div class="table-wrapper">
+            <el-table :data="songs" stripe style="width: 100%; height: 100%" @row-dblclick="handleSongClick">
+              <el-table-column prop="song_name" label="歌曲名称" min-width="200" align="center">
+                <template #default="scope">
+                  <div class="song-info" @click="handleSongClick(scope.row)" style="cursor: pointer;">
+                    <div class="cover-wrapper">
+                      <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
+                      <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
+                    </div>
+                    <span class="song-name">{{ scope.row.song_name }}</span>
+                    <el-tag size="small" type="danger" v-if="scope.row.song_price > 0 && !scope.row.is_bought" effect="plain" style="margin-left: 8px">VIP</el-tag>
                   </div>
-                  <span class="song-name">{{ scope.row.song_name }}</span>
-                  <el-tag size="small" type="danger" v-if="scope.row.song_price > 0 && !scope.row.is_bought" effect="plain" style="margin-left: 8px">VIP</el-tag>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column prop="song_singer_name" label="歌手" width="150" />
-            <el-table-column prop="song_duration" label="时长" width="100">
-               <template #default="scope">
-                  {{ formatDuration(scope.row.song_duration) }}
-               </template>
-            </el-table-column>
-            <el-table-column prop="song_price" label="价格" width="100">
-              <template #default="scope">
-                {{ formatPrice(scope.row.song_price) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="220" fixed="right">
-              <template #default="scope">
-                <el-button
-                  type="primary"
-                  size="small"
-                  @click.stop="handleDetail(scope.row)"
-                  plain>详情</el-button>
-                <el-button
-                  type="primary"
-                  size="small"
-                  :disabled="scope.row.is_bought"
-                  @click.stop="handleBuySong(scope.row)"
-                  :icon="ShoppingCart"
-                  plain
-                >
-                  {{ scope.row.is_bought ? '已购买' : '购买' }}
-                </el-button>
-                <el-button
-                  type="danger"
-                  size="small"
-                  @click.stop="handleRemoveStar(scope.row)"
-                  :icon="Delete"
-                  circle
-                >
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+                </template>
+              </el-table-column>
+              <el-table-column prop="song_singer_name" label="歌手" width="150" align="center" />
+              <el-table-column prop="song_duration" label="时长" width="100" align="center">
+                 <template #default="scope">
+                   {{ formatDuration(scope.row.song_duration) }}
+                 </template>
+              </el-table-column>
+              <el-table-column prop="song_price" label="价格" width="100" align="center">
+                <template #default="scope">
+                  {{ formatPrice(scope.row.song_price) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="220" fixed="right" align="center">
+                <template #default="scope">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click.stop="handleDetail(scope.row)"
+                    plain>详情</el-button>
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click.stop="handleRemoveStar(scope.row)"
+                    :icon="Delete"
+                    circle
+                  >
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
           
           <div class="pagination-container">
             <el-pagination
@@ -94,7 +85,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { ArrowLeft, VideoPlay, ShoppingCart, Delete } from '@element-plus/icons-vue'
 import { getMyStarredSongs, unstarSong, buySong, type Song } from '@/api/music'
 import { usePlayerStore } from '@/stores/player'
@@ -114,7 +105,6 @@ const total = ref(0)
 
 const formatPrice = (price: any) => {
   const numPrice = Number(price)
-  console.log('price: ', numPrice)
   if (price === null || price === undefined || isNaN(numPrice)) {
     return '免费'
   }
@@ -161,22 +151,10 @@ const handlePlayAll = () => {
   }
 }
 
-const handleBuySong = async (song: Song) => {
-  try {
-    await buySong(song.song_id)
-    song.is_bought = true
-    ElMessage.success('购买成功')
-  } catch (error: any) {
-    const errorMessage = error.response?.data?.error || '购买失败'
-    ElMessage.error(errorMessage)
-  }
-}
-
 const handleRemoveStar = async (song: Song) => {
   try {
     await unstarSong(song.song_id)
     ElMessage.success('取消收藏成功')
-    // Refresh list to keep pagination correct
     if (songs.value.length === 1 && currentPage.value > 1) {
       currentPage.value--
     }
@@ -206,26 +184,67 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 1. 容器占满父元素高度 */
 .my-starred-songs-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  height: 100%; /* 关键：继承 Tab 内容的高度 */
+  box-sizing: border-box; /* 包含 padding */
+  display: flex;
+  flex-direction: column;
 }
 
+/* 2. 卡片变成 Flex 列布局，占满剩余空间 */
 .starred-songs-card {
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(12px);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  
+  flex: 1; /* 关键：占满容器剩余空间 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 防止卡片整体出现滚动条 */
 }
 
 .starred-songs-card.no-border {
   border: none;
-  box-shadow: none;
   background: transparent;
 }
 
+/* 3. 穿透修改 ElCard Body，使其也是 Flex 布局 */
+:deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 关键：限制内容溢出 */
+  padding: 0 20px 20px 20px; /* 调整 padding */
+}
+
+/* 4. 内部容器结构 Flex 化 */
+.song-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.song-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 5. 表格包装器：占据剩余空间，限制表格高度 */
+.table-wrapper {
+  flex: 1;
+  overflow: hidden; /* 必须隐藏溢出，配合 el-table height="100%" */
+}
+
+/* 表格样式微调 */
 :deep(.el-table) {
   background-color: transparent;
   --el-table-tr-bg-color: transparent;
@@ -241,8 +260,11 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* 如果有 header，可以给一点 padding */
+  padding-bottom: 0; 
 }
 
+/* ... 保持原有封面、按钮等样式不变 ... */
 .song-info {
   display: flex;
   align-items: center;
@@ -301,9 +323,11 @@ onMounted(() => {
   font-size: 15px;
 }
 
+/* 分页栏：固定在底部，不伸缩 */
 .pagination-container {
-  margin-top: 24px;
+  margin-top: 15px;
   display: flex;
   justify-content: center;
+  flex-shrink: 0; /* 防止被压缩 */
 }
 </style>

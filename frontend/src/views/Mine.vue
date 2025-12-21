@@ -1,108 +1,110 @@
 <template>
-  <div class="mine-container">
-    <!-- User Profile Section -->
-    <el-card class="profile-card" shadow="hover" :body-style="{ padding: '20px' }" @click="$router.push('/profile')">
-      <div class="profile-content">
-        <el-avatar :size="64" :src="authStore.user?.user_avatar" class="avatar">
-          {{ authStore.user?.user_name?.charAt(0)?.toUpperCase() }}
-        </el-avatar>
-        <div class="user-info">
-          <h2 class="username">{{ authStore.user?.user_name || '未登录' }}</h2>
-          <!-- <p class="phone">{{ authStore.user?.user_mobile || '点击登录/注册' }}</p> -->
-          <div class="tags">
-            <el-tag size="small" v-if="authStore.isSinger" type="success">歌手</el-tag>
-            <el-tag size="small" v-if="authStore.isAdmin" type="warning">管理员</el-tag>
-            <el-tag size="small" v-if="!authStore.isAuthenticated" type="info">游客</el-tag>
+  <div class="out-container">
+    <div class="mine-container">
+      <!-- User Profile Section -->
+      <el-card class="profile-card" shadow="hover" :body-style="{ padding: '20px' }" @click="$router.push('/profile')">
+        <div class="profile-content">
+          <el-avatar :size="64" :src="authStore.user?.user_avatar" class="avatar">
+            {{ authStore.user?.user_name?.charAt(0)?.toUpperCase() }}
+          </el-avatar>
+          <div class="user-info">
+            <h2 class="username">{{ authStore.user?.user_name || '未登录' }}</h2>
+            <!-- <p class="phone">{{ authStore.user?.user_mobile || '点击登录/注册' }}</p> -->
+            <div class="tags">
+              <el-tag size="small" v-if="authStore.isSinger" type="success">歌手</el-tag>
+              <el-tag size="small" v-if="authStore.isAdmin" type="warning">管理员</el-tag>
+              <el-tag size="small" v-if="!authStore.isAuthenticated" type="info">游客</el-tag>
+            </div>
           </div>
+          <el-icon class="arrow-icon"><ArrowRight /></el-icon>
         </div>
-        <el-icon class="arrow-icon"><ArrowRight /></el-icon>
-      </div>
-    </el-card>
+      </el-card>
 
-    <!-- Function Icons Section (Scrollable) -->
-    <div class="function-scroll-container" v-if="authStore.isAuthenticated">
-      <div class="function-item" @click="$router.push('/my/music')">
-        <div class="icon-box heart">
-          <el-icon>
-            <StarFilled />
-          </el-icon> 
+      <!-- Function Icons Section (Scrollable) -->
+      <div class="function-scroll-container" v-if="authStore.isAuthenticated">
+        <div class="function-item" @click="$router.push('/my/music')">
+          <div class="icon-box heart">
+            <el-icon>
+              <StarFilled />
+            </el-icon> 
+          </div>
+          <span>歌曲</span>
         </div>
-        <span>歌曲</span>
+        
+        <div class="function-item" @click="$router.push('/my/following')">
+          <div class="icon-box star">
+            <el-icon><User /></el-icon>
+          </div>
+          <span>关注歌手</span>
+        </div>
+
+        <div class="function-item" @click="$router.push('/my/playlists-center')">
+          <div class="icon-box book">
+            <el-icon><Collection /></el-icon>
+          </div>
+          <span>歌单</span>
+        </div>
+
+        <div class="function-item" @click="$router.push('/my/bought')">
+          <div class="icon-box coin">
+            <el-icon><Money /></el-icon>
+          </div>
+          <span>我的购买</span>
+        </div>
+
+        <div class="function-item" @click="$router.push('/my/report')">
+          <div class="icon-box chart">
+            <el-icon><DataAnalysis /></el-icon>
+          </div>
+          <span>听歌报告</span>
+        </div>
+
+        <div class="function-item" v-if="authStore.isAdmin" @click="$router.push('/admin/dashboard')">
+          <div class="icon-box tool">
+            <el-icon><Tools /></el-icon>
+          </div>
+          <span>管理审核</span>
+        </div>
       </div>
       
-      <div class="function-item" @click="$router.push('/my/following')">
-        <div class="icon-box star">
-          <el-icon><User /></el-icon>
-        </div>
-        <span>关注歌手</span>
+      <div class="login-hint" v-else>
+        <el-empty description="请先登录查看更多功能">
+          <el-button type="primary" @click="$router.push('/login')">去登录</el-button>
+        </el-empty>
       </div>
 
-      <div class="function-item" @click="$router.push('/my/playlists-center')">
-        <div class="icon-box book">
-          <el-icon><Collection /></el-icon>
-        </div>
-        <span>歌单</span>
+      <!-- General Services Menu -->
+      <div class="menu-list" v-if="authStore.isAuthenticated">
+        <el-card class="menu-card" :body-style="{ padding: '0' }">
+          <div class="menu-item" @click="handleSetting">
+              <div class="menu-left">
+                <el-icon class="menu-icon" color="#909399"><Setting /></el-icon>
+                <span>设置</span>
+              </div>
+              <el-icon><ArrowRight /></el-icon>
+          </div>
+          <div class="menu-item" @click="handleHelp">
+              <div class="menu-left">
+                <el-icon class="menu-icon" color="#909399"><Service /></el-icon>
+                <span>帮助与反馈</span>
+              </div>
+              <el-icon><ArrowRight /></el-icon>
+          </div>
+          <div class="menu-item" @click="handleAbout">
+              <div class="menu-left">
+                <el-icon class="menu-icon" color="#909399"><InfoFilled /></el-icon>
+                <span>关于我们</span>
+              </div>
+              <el-icon><ArrowRight /></el-icon>
+          </div>
+          <div class="menu-item logout" @click="handleLogout">
+              <div class="menu-left">
+                <el-icon class="menu-icon" color="#F56C6C"><SwitchButton /></el-icon>
+                <span style="color: #F56C6C;">退出登录</span>
+              </div>
+          </div>
+        </el-card>
       </div>
-
-      <div class="function-item" @click="$router.push('/my/bought')">
-        <div class="icon-box coin">
-          <el-icon><Money /></el-icon>
-        </div>
-        <span>我的购买</span>
-      </div>
-
-      <div class="function-item" @click="$router.push('/my/report')">
-        <div class="icon-box chart">
-          <el-icon><DataAnalysis /></el-icon>
-        </div>
-        <span>听歌报告</span>
-      </div>
-
-      <div class="function-item" v-if="authStore.isAdmin" @click="$router.push('/admin/dashboard')">
-        <div class="icon-box tool">
-          <el-icon><Tools /></el-icon>
-        </div>
-        <span>管理审核</span>
-      </div>
-    </div>
-    
-    <div class="login-hint" v-else>
-      <el-empty description="请先登录查看更多功能">
-        <el-button type="primary" @click="$router.push('/login')">去登录</el-button>
-      </el-empty>
-    </div>
-
-    <!-- General Services Menu -->
-    <div class="menu-list" v-if="authStore.isAuthenticated">
-       <el-card class="menu-card" :body-style="{ padding: '0' }">
-         <div class="menu-item" @click="handleSetting">
-            <div class="menu-left">
-               <el-icon class="menu-icon" color="#909399"><Setting /></el-icon>
-               <span>设置</span>
-            </div>
-            <el-icon><ArrowRight /></el-icon>
-         </div>
-         <div class="menu-item" @click="handleHelp">
-            <div class="menu-left">
-               <el-icon class="menu-icon" color="#909399"><Service /></el-icon>
-               <span>帮助与反馈</span>
-            </div>
-            <el-icon><ArrowRight /></el-icon>
-         </div>
-         <div class="menu-item" @click="handleAbout">
-            <div class="menu-left">
-               <el-icon class="menu-icon" color="#909399"><InfoFilled /></el-icon>
-               <span>关于我们</span>
-            </div>
-            <el-icon><ArrowRight /></el-icon>
-         </div>
-         <div class="menu-item logout" @click="handleLogout">
-            <div class="menu-left">
-               <el-icon class="menu-icon" color="#F56C6C"><SwitchButton /></el-icon>
-               <span style="color: #F56C6C;">退出登录</span>
-            </div>
-         </div>
-       </el-card>
     </div>
   </div>
 </template>
@@ -142,14 +144,24 @@ const handleLogout = () => {
 </script>
 
 <style scoped>
+.out-container {
+  background-color: #f5f5f5;
+}
+
 .mine-container {
   padding: 20px;
   padding-bottom: 80px; /* Space for bottom nav */
+  max-width: 1030px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  box-sizing: border-box;
+  margin: 0 auto;
 }
 
 .profile-card {
   margin-bottom: 20px;
   cursor: pointer;
+  border-radius: 12px;
   transition: transform 0.2s;
   background: rgba(255, 255, 255, 0.9) !important;
   backdrop-filter: blur(10px);

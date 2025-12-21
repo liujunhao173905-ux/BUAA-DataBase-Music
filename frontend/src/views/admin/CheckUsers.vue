@@ -348,7 +348,6 @@ const totalPages = computed(() => {
   margin-bottom: 30px;
   color: #333;
 }
-*/
 
 .filters {
   margin-bottom: 20px;

@@ -68,7 +68,6 @@
         </div>
       </template>
 
-      <!-- 外部导入对话框 -->
       <el-dialog v-model="showExternalDialog" title="从外部API导入" width="600px">
          <div style="display: flex; gap: 10px; margin-bottom: 20px;">
             <el-input v-model="externalKeyword" placeholder="输入歌名或歌手" @keyup.enter="handleExternalSearch" />
@@ -86,85 +85,91 @@
          </el-table>
       </el-dialog>
 
-      <el-table :data="songs" stripe style="width: 100%" @selection-change="handleSelectionChange" @row-dblclick="handlePlay">
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="song_name" label="歌曲名称" min-width="200">
-          <template #default="scope">
-            <div class="song-info" @click="handlePlay(scope.row)" style="cursor: pointer;">
-              <div class="cover-wrapper">
-                <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
-                <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
-              </div>
-              <span class="song-name">{{ scope.row.song_name }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="song_duration" label="时长" width="100">
-          <template #default="scope">
-            {{ formatDuration(scope.row.song_duration) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="song_price" label="价格" width="100">
-          <template #default="scope">
-            {{ formatPrice(scope.row.song_price) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="song_createtime" label="上传时间" width="200">
-          <template #default="scope">
-            {{ formatDate(scope.row.song_createtime) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="song_status" label="状态" width="120">
-          <template #default="scope">
-            <el-tag
-              :type=statusColor(scope.row.song_status)>
-              {{ statusText(scope.row.song_status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right">
-          <template #default="scope">
-            <el-button
-              type="primary"
-              size="small"
-              @click.stop="handleDetail(scope.row)"
-              plain>详情</el-button>
+      <div v-if="songs.length > 0" class="song-list">
+        <div class="table-wrapper">
+          <el-table :data="songs" stripe style="width: 100%; height: 100%" @selection-change="handleSelectionChange" @row-dblclick="handlePlay">
+            <el-table-column type="selection" width="55" />
+            <el-table-column prop="song_name" label="歌曲名称" min-width="200" align="center">
+              <template #default="scope">
+                <div class="song-info" @click="handlePlay(scope.row)" style="cursor: pointer;">
+                  <div class="cover-wrapper">
+                    <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
+                    <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
+                  </div>
+                  <span class="song-name">{{ scope.row.song_name }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="song_duration" label="时长" width="100" align="center">
+              <template #default="scope">
+                {{ formatDuration(scope.row.song_duration) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="song_price" label="价格" width="100" align="center">
+              <template #default="scope">
+                {{ formatPrice(scope.row.song_price) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="song_createtime" label="上传时间" width="200" align="center">
+              <template #default="scope">
+                {{ formatDate(scope.row.song_createtime) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="song_status" label="状态" width="120" align="center">
+              <template #default="scope">
+                <el-tag
+                  :type=statusColor(scope.row.song_status)>
+                  {{ statusText(scope.row.song_status) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="250" fixed="right" align="center">
+              <template #default="scope">
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click.stop="handleDetail(scope.row)"
+                  plain>详情</el-button>
 
-            <el-button
-              v-if="scope.row.song_status === 1 || scope.row.song_status === 2"
-              type="success"
-              size="small"
-              @click.stop="handleEdit(scope.row)"
-              plain>编辑</el-button>
+                <el-button
+                  v-if="scope.row.song_status === 1 || scope.row.song_status === 2"
+                  type="success"
+                  size="small"
+                  @click.stop="handleEdit(scope.row)"
+                  plain>编辑</el-button>
 
-            <!-- 其余状态显示「已锁定」或禁用 -->
-            <el-button
-              v-else
-              type="info"
-              size="small"
-              disabled
-              plain>编辑</el-button>
+                <el-button
+                  v-else
+                  type="info"
+                  size="small"
+                  disabled
+                  plain>编辑</el-button>
 
-            <el-button
-              type="danger"
-              size="small"
-              @click.stop="handleDelete(scope.row)"
-              :icon="Delete" circle></el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+                <el-button
+                  type="danger"
+                  size="small"
+                  @click.stop="handleDelete(scope.row)"
+                  :icon="Delete" circle></el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
 
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
       </div>
+      
+      <el-empty v-else description="暂无歌曲" style="flex: 1; display: flex; justify-content: center; align-items: center;" />
+
     </el-card>
   </div>
 </template>
@@ -231,8 +236,6 @@ const handleExport = async (command: string) => {
         return
     }
     const res: any = await exportSongs(command as 'excel' | 'xml', ids)
-    // 后端应该返回下载链接或文件流
-    // 如果是文件流，需要处理下载
     if (res && res.url) {
         window.open(res.url, '_blank')
     } else {
@@ -249,11 +252,9 @@ const handleImport = async (file: any) => {
     ElMessage.success(res.message || '导入成功')
     fetchSongs()
   } catch (error: any) {
-    // 错误已经在 request.ts 中处理了，但这里可能需要显示特定信息
-    // 如果是 400 错误，request.ts 会显示 error message
-    // 这里我们只是阻止默认上传行为
+    // 错误处理
   }
-  return false // 阻止自动上传
+  return false 
 }
 
 const handleExternalSearch = async () => {
@@ -263,7 +264,7 @@ const handleExternalSearch = async () => {
     const res = await searchExternalSongs(externalKeyword.value)
     externalResults.value = res
   } catch (error) {
-    // Error handled in interceptor
+    // Error handled
   } finally {
     externalLoading.value = false
   }
@@ -350,7 +351,6 @@ const handleDelete = async (song: Song) => {
       type: 'warning',
     })
 
-    // 调用删除歌曲的API
     await deleteSong(song.song_id)
     ElMessage.success('歌曲删除成功')
     fetchSongs()
@@ -362,50 +362,80 @@ const handleDelete = async (song: Song) => {
   }
 }
 
-// 分页大小变化
 const handleSizeChange = (size: number) => {
   pageSize.value = size
   fetchSongs()
 }
 
-// 当前页码变化
 const handleCurrentChange = (current: number) => {
   currentPage.value = current
   fetchSongs()
 }
 
-// 返回上一页
 const handleBack = () => {
   router.back()
 }
 
-// 组件挂载时获取歌曲列表
 onMounted(() => {
   fetchSongs()
 })
 </script>
 
 <style scoped>
+/* 1. 容器：高度 100%，Flex 列布局 */
 .my-songs-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
+/* 2. 卡片：占满剩余空间，Flex 列布局，防止溢出 */
 .my-songs-card {
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(12px);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  
+  flex: 1; 
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .my-songs-card.no-border {
   border: none;
-  box-shadow: none;
   background: transparent;
 }
 
+/* 3. 卡片 Body：穿透修改，Flex 列布局，限制溢出 */
+:deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0 20px 20px 20px;
+}
+
+/* 4. 歌曲列表容器 */
+.song-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 5. 表格包装器：占据剩余空间，隐藏溢出 */
+.table-wrapper {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 样式微调：表格透明背景 */
 :deep(.el-table) {
   background-color: transparent;
   --el-table-tr-bg-color: transparent;
@@ -421,6 +451,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 0;
 }
 
 .song-info {
@@ -481,9 +512,11 @@ onMounted(() => {
   font-size: 15px;
 }
 
+/* 6. 分页栏：固定底部，不被压缩 */
 .pagination-container {
-  margin-top: 24px;
+  margin-top: 15px;
   display: flex;
   justify-content: center;
+  flex-shrink: 0;
 }
 </style>

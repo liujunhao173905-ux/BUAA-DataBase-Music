@@ -231,7 +231,7 @@ const handleSubmit = async () => {
 
     await updateSong(songId.value, formDataToSend)
     ElMessage.success('歌曲修改成功！歌曲将在审核通过后更新')
-    router.push('/my/songs')
+    router.push('/my/music')
   } catch (error) {
     ElMessage.error('歌曲修改失败，请重试')
     console.error('修改歌曲失败:', error)
