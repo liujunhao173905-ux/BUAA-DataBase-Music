@@ -112,7 +112,7 @@ export const exportSongs = (format: 'excel' | 'xml', songIds?: number[]) => {
   }
   return request.get(`/music/export/`, {
     params,
-    responseType: 'blob'
+    responseType: 'blob' 
   })
 }
 

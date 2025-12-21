@@ -235,12 +235,27 @@ const handleExport = async (command: string) => {
         ElMessage.warning('请选择要导出的歌曲')
         return
     }
+
     const res: any = await exportSongs(command as 'excel' | 'xml', ids)
-    if (res && res.url) {
-        window.open(res.url, '_blank')
-    } else {
-        ElMessage.success('导出任务已开始')
-    }
+
+    const isExcel = command === 'excel'
+    const extension = isExcel ? 'xlsx' : 'xml'
+    const mimeType = isExcel 
+      ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      : 'application/xml'
+
+    const blob = new Blob([res], { type: mimeType })
+
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `music_export.${extension}`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+
   } catch (error) {
     ElMessage.error('导出失败')
   }
