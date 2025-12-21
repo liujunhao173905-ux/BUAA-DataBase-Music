@@ -151,7 +151,13 @@ const handleBack = () => {
 
 const formatPrice = (price: any) => {
   const numPrice = Number(price)
-  if (!price || isNaN(numPrice)) return '免费'
+  console.log('price: ', numPrice)
+  if (price === null || price === undefined || isNaN(numPrice)) {
+    return '免费'
+  }
+  if (numPrice <= 0) {
+    return '免费'
+  }
   return `¥${numPrice.toFixed(2)}`
 }
 

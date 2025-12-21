@@ -261,10 +261,15 @@ const handleSongClick = (item: any) => {
 }
 
 const formatPrice = (price: any) => {
-  // 检查price是否为有效数字
-  const priceNum = Number(price)
-  if (!price || isNaN(priceNum)) return '免费'
-  return `¥${priceNum.toFixed(2)}`
+  const numPrice = Number(price)
+  console.log('price: ', numPrice)
+  if (price === null || price === undefined || isNaN(numPrice)) {
+    return '免费'
+  }
+  if (numPrice <= 0) {
+    return '免费'
+  }
+  return `¥${numPrice.toFixed(2)}`
 }
 
 const getSearchPlaceholder = () => {

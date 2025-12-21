@@ -46,6 +46,11 @@
                 <el-button
                   type="primary"
                   size="small"
+                  @click.stop="handleDetail(scope.row)"
+                  plain>详情</el-button>
+                <el-button
+                  type="primary"
+                  size="small"
                   :disabled="scope.row.is_bought"
                   @click.stop="handleBuySong(scope.row)"
                   :icon="ShoppingCart"
@@ -107,7 +112,13 @@ const total = ref(0)
 
 const formatPrice = (price: any) => {
   const numPrice = Number(price)
-  if (!price || isNaN(numPrice)) return '免费'
+  console.log('price: ', numPrice)
+  if (price === null || price === undefined || isNaN(numPrice)) {
+    return '免费'
+  }
+  if (numPrice <= 0) {
+    return '免费'
+  }
   return `¥${numPrice.toFixed(2)}`
 }
 
@@ -129,6 +140,11 @@ const fetchStarredSongs = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// 查看歌曲详情
+const handleDetail = (song: Song) => {
+  router.push(`/songs/${song.song_id}`)
 }
 
 const handleSongClick = (song: Song) => {

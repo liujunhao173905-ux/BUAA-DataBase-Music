@@ -37,10 +37,9 @@
                   @click="handlePlay"
                 >
                   <el-icon style="margin-right: 4px">
-                    <VideoPause v-if="isPlayingThisSong" />
-                    <VideoPlay v-else />
+                    <VideoPlay />
                   </el-icon>
-                  {{ isPlayingThisSong ? '暂停播放' : '立即播放' }}
+                  {{ '立即播放' }}
                 </el-button>
 
                 <el-button
@@ -357,7 +356,13 @@ const handleBuySong = async () => {
 
 const formatPrice = (price: any) => {
   const numPrice = Number(price)
-  if (!price || isNaN(numPrice)) return '免费'
+  console.log('price: ', numPrice)
+  if (price === null || price === undefined || isNaN(numPrice)) {
+    return '免费'
+  }
+  if (numPrice <= 0) {
+    return '免费'
+  }
   return `¥${numPrice.toFixed(2)}`
 }
 

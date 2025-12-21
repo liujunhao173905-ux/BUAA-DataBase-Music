@@ -85,6 +85,11 @@
           </el-table-column>
           <el-table-column label="操作" width="150" fixed="right">
             <template #default="scope">
+              <el-button
+                type="primary"
+                size="small"
+                @click.stop="handleDetail(scope.row)"
+                plain>详情</el-button>
               <el-button type="primary" link @click.stop="handlePlaySong(scope.row)">
                 <el-icon><VideoPlay /></el-icon> 播放
               </el-button>
@@ -108,6 +113,7 @@ import { ArrowLeft, VideoPlay, Download } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { useAuthStore } from '@/stores/auth'
 import { usePlayerStore } from '@/stores/player'
+import type { Song } from '@/api/music'
 
 const route = useRoute()
 const router = useRouter()
@@ -202,16 +208,26 @@ const formatDuration = (duration: any) => {
 }
 
 const formatPrice = (price: any) => {
-  // 检查price是否为有效数字
-  const priceNum = Number(price)
-  if (!price || isNaN(priceNum)) return '免费'
-  return `¥${priceNum.toFixed(2)}`
+  const numPrice = Number(price)
+  console.log('price: ', numPrice)
+  if (price === null || price === undefined || isNaN(numPrice)) {
+    return '免费'
+  }
+  if (numPrice <= 0) {
+    return '免费'
+  }
+  return `¥${numPrice.toFixed(2)}`
 }
 
 const formatDate = (dateString: string) => {
   if (!dateString) return ''
   const date = new Date(dateString)
   return date.toLocaleString()
+}
+
+// 查看歌曲详情
+const handleDetail = (song: Song) => {
+  router.push(`/songs/${song.song_id}`)
 }
 
 const handleBack = () => {

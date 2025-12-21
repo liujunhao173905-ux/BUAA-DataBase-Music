@@ -78,7 +78,7 @@
         </el-table-column>
         <el-table-column prop="song_price" label="价格" width="100">
           <template #default="scope">
-            ¥{{ scope.row.song_price.toFixed(2) }}
+            {{ formatPrice(scope.row.song_price) }}
           </template>
         </el-table-column>
         <el-table-column prop="song_createtime" label="上传时间" width="200">
@@ -274,6 +274,18 @@ const formatDuration = (seconds: number) => {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
+const formatPrice = (price: any) => {
+  const numPrice = Number(price)
+  console.log('price: ', numPrice)
+  if (price === null || price === undefined || isNaN(numPrice)) {
+    return '免费'
+  }
+  if (numPrice <= 0) {
+    return '免费'
+  }
+  return `¥${numPrice.toFixed(2)}`
 }
 
 // 获取我的歌曲列表
