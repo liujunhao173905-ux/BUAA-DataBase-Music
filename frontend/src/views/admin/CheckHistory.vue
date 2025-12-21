@@ -1,33 +1,31 @@
 <template>
   <div class="check-history">
     <div class="container">
-      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
-        <el-button type="default" @click="handleBack">
-          <el-icon><ArrowLeft /></el-icon> 返回
-        </el-button>
-        <h2 class="page-title">审核历史</h2>
-      </div>
+      <el-card shadow="hover" class="page-card">
+        <template #header>
+          <el-page-header @back="handleBack" content="审核历史" title="返回" />
+        </template>
       
-      <div class="filters">
-        <select v-model="typeFilter" @change="loadHistory">
-          <option value="">全部类型</option>
-          <option value="song">歌曲审核</option>
-          <option value="playlist">歌单审核</option>
-          <option value="user">用户审核</option>
-        </select>
-        
-        <select v-model="statusFilter" @change="loadHistory">
-          <option value="">全部状态</option>
-          <option value="0">待审核</option>
-          <option value="1">已通过</option>
-          <option value="2">已拒绝</option>
-        </select>
-      </div>
+        <div class="filters">
+          <select v-model="typeFilter" @change="loadHistory">
+            <option value="">全部类型</option>
+            <option value="song">歌曲审核</option>
+            <option value="playlist">歌单审核</option>
+            <option value="user">用户审核</option>
+          </select>
+          
+          <select v-model="statusFilter" @change="loadHistory">
+            <option value="">全部状态</option>
+            <option value="0">待审核</option>
+            <option value="1">已通过</option>
+            <option value="2">已拒绝</option>
+          </select>
+        </div>
       
-      <div class="history-list">
-        <div v-if="loading" class="loading">加载中...</div>
-        <div v-else-if="history.length === 0" class="empty">暂无审核历史记录</div>
-        <div v-else class="history-items">
+        <div class="history-list-container">
+          <div v-if="loading" class="loading">加载中...</div>
+          <div v-else-if="history.length === 0" class="empty">暂无审核历史记录</div>
+          <div v-else class="history-items">
           <div 
             v-for="record in history" 
             :key="record.check_id" 
@@ -68,21 +66,22 @@
       </div>
       
       <!-- 分页 -->
-      <div v-if="total > 0" class="pagination">
-        <button 
-          @click="prevPage" 
-          :disabled="page <= 1"
-        >
-          上一页
-        </button>
-        <span>{{ page }} / {{ totalPages }}</span>
-        <button 
-          @click="nextPage" 
-          :disabled="page >= totalPages"
-        >
-          下一页
-        </button>
-      </div>
+        <div class="pagination">
+          <button 
+            @click="prevPage" 
+            :disabled="page <= 1"
+          >
+            上一页
+          </button>
+          <span>{{ page }} / {{ totalPages }}</span>
+          <button 
+            @click="nextPage" 
+            :disabled="page >= totalPages"
+          >
+            下一页
+          </button>
+        </div>
+      </el-card>
     </div>
   </div>
 </template>
@@ -92,7 +91,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { useAuditStore } from '@/stores/audit'
-import { ArrowLeft } from '@element-plus/icons-vue'
+// import { ArrowLeft } from '@element-plus/icons-vue' // 不再需要
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -244,11 +243,16 @@ const totalPages = computed(() => {
   margin-bottom: 30px;
   color: #333;
 }
+*/
+
+.filters {
+  margin-bottom: 20px;
+}
 
 .filters {
   display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 15px;
+  align-items: center;
 }
 
 .filters select {
@@ -256,15 +260,16 @@ const totalPages = computed(() => {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
-  min-width: 120px;
 }
 
+/*
 .history-list {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
 }
+*/
 
 .loading, .empty {
   text-align: center;

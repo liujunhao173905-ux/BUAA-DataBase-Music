@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <div class="login-box">
+    <el-card class="login-card">
       <h2 class="login-title">登录</h2>
       <el-form
         ref="loginFormRef"
@@ -44,14 +44,14 @@
           </div>
         </el-form-item>
       </el-form>
-    </div>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { type FormInstance, type FormRules } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -104,15 +104,14 @@ const handleLogin = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* background is handled by App.vue globally */
 }
 
-.login-box {
+.login-card {
   width: 400px;
-  padding: 40px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .login-title {

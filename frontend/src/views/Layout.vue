@@ -36,7 +36,7 @@ const playerStore = usePlayerStore()
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f5f5f5;
+  background-color: transparent;
 }
 
 .main-content {
@@ -55,8 +55,10 @@ const playerStore = usePlayerStore()
   left: 0;
   width: 100%;
   height: 60px;
-  background-color: #ffffff;
-  border-top: 1px solid #e0e0e0;
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
   display: flex;
   justify-content: space-around;
   align-items: center;

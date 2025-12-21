@@ -1,32 +1,30 @@
 <template>
   <div class="check-users">
     <div class="container">
-      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
-        <el-button type="default" @click="handleBack">
-          <el-icon><ArrowLeft /></el-icon> 返回
-        </el-button>
-        <h2 class="page-title">用户审核</h2>
-      </div>
+      <el-card shadow="hover" class="page-card">
+        <template #header>
+          <el-page-header @back="handleBack" content="用户审核" title="返回" />
+        </template>
       
-      <div class="filters">
-        <select v-model="statusFilter" @change="loadUsers">
-          <option value="">全部状态</option>
-          <option value="0">待审核</option>
-          <option value="1">已通过</option>
-          <option value="2">已拒绝</option>
-        </select>
-        <button 
-          class="btn btn-clear-all" 
-          @click="showClearAllDialog"
-        >
-          批量清空已处理审核
-        </button>
-      </div>
+        <div class="filters">
+          <select v-model="statusFilter" @change="loadUsers">
+            <option value="">全部状态</option>
+            <option value="0">待审核</option>
+            <option value="1">已通过</option>
+            <option value="2">已拒绝</option>
+          </select>
+          <button 
+            class="btn btn-clear-all" 
+            @click="showClearAllDialog"
+          >
+            批量清空已处理审核
+          </button>
+        </div>
       
-      <div class="users-list">
-        <div v-if="loading" class="loading">加载中...</div>
-        <div v-else-if="users.length === 0" class="empty">暂无用户审核记录</div>
-        <div v-else class="user-items">
+        <div class="users-list-container">
+          <div v-if="loading" class="loading">加载中...</div>
+          <div v-else-if="users.length === 0" class="empty">暂无用户审核记录</div>
+          <div v-else class="user-items">
           <div 
             v-for="user in users" 
             :key="user.check_id" 
@@ -89,21 +87,22 @@
       </div>
       
       <!-- 分页 -->
-      <div v-if="total > 0" class="pagination">
-        <button 
-          @click="prevPage" 
-          :disabled="page <= 1"
-        >
-          上一页
-        </button>
-        <span>{{ page }} / {{ totalPages }}</span>
-        <button 
-          @click="nextPage" 
-          :disabled="page >= totalPages"
-        >
-          下一页
-        </button>
-      </div>
+        <div class="pagination">
+          <button 
+            @click="prevPage" 
+            :disabled="page <= 1"
+          >
+            上一页
+          </button>
+          <span>{{ page }} / {{ totalPages }}</span>
+          <button 
+            @click="nextPage" 
+            :disabled="page >= totalPages"
+          >
+            下一页
+          </button>
+        </div>
+      </el-card>
     </div>
     
     <!-- 审核通过对话框 -->
@@ -349,6 +348,7 @@ const totalPages = computed(() => {
   margin-bottom: 30px;
   color: #333;
 }
+*/
 
 .filters {
   margin-bottom: 20px;
@@ -376,12 +376,14 @@ const totalPages = computed(() => {
   background: #e0a800;
 }
 
+/*
 .users-list {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
 }
+*/
 
 .loading, .empty {
   text-align: center;

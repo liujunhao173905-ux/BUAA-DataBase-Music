@@ -72,6 +72,16 @@ export const getUserDetail = (user_id: number) => {
   return request.get<UserInfo>(`/users/${user_id}/`)
 }
 
+// 获取歌手列表
+export const getSingers = (page: number = 1, pageSize: number = 10) => {
+  return request.get<{ count: number; results: UserInfo[] }>('/users/singers/', { 
+    params: { 
+      page,
+      page_size: pageSize
+    } 
+  })
+}
+
 // 关注用户
 export const followUser = (user_id: number) => {
   return request.post(`/users/${user_id}/follow/`)

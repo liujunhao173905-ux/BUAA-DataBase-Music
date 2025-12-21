@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
 import { Headset, ArrowLeft, ArrowRight, VideoPlay, VideoPause, Refresh, RefreshRight, Operation } from '@element-plus/icons-vue'
@@ -84,8 +84,10 @@ const toDetail = () => {
   left: 0;
   width: 100%;
   height: 60px;
-  background: white;
-  border-top: 1px solid #eee;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
   z-index: 999;
   padding: 0 16px;

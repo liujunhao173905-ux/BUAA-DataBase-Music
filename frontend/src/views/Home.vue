@@ -23,7 +23,7 @@
               <h3>{{ item.song_name }}</h3>
               <p>{{ item.song_singer_name }}</p>
             </div>
-            <div class="play-icon-overlay">
+            <div class="play-icon-overlay" @click.stop="handlePlay(item)">
               <el-icon><VideoPlay /></el-icon>
             </div>
           </div>
@@ -52,7 +52,7 @@
                  <div class="image-placeholder"><el-icon><Headset /></el-icon></div>
                </template>
             </el-image>
-            <div class="play-overlay">
+            <div class="play-overlay" @click.stop="handlePlay(song)">
                <el-icon><VideoPlay /></el-icon>
             </div>
           </div>
@@ -62,6 +62,40 @@
           </div>
         </div>
         <el-empty v-if="!loadingSongs && songs.length === 0" description="暂无推荐" />
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="title-with-icon">
+          <el-icon class="section-icon" color="#67C23A"><Timer /></el-icon>
+          <h2>最新发布</h2>
+        </div>
+        <span class="more" @click="$router.push('/songs')">更多 <el-icon><ArrowRight /></el-icon></span>
+      </div>
+      <div class="scroll-container" v-loading="loadingNewSongs">
+        <div 
+          v-for="song in newSongs" 
+          :key="song.song_id" 
+          class="scroll-item song-item"
+          @click="handleSongClick(song)"
+        >
+          <div class="image-wrapper">
+            <el-image :src="song.song_cover" class="cover" fit="cover" lazy>
+               <template #error>
+                 <div class="image-placeholder"><el-icon><Headset /></el-icon></div>
+               </template>
+            </el-image>
+            <div class="play-overlay" @click.stop="handlePlay(song)">
+               <el-icon><VideoPlay /></el-icon>
+            </div>
+          </div>
+          <div class="info">
+            <div class="name text-ellipsis">{{ song.song_name }}</div>
+            <div class="singer text-ellipsis">{{ song.song_singer_name }}</div>
+          </div>
+        </div>
+        <el-empty v-if="!loadingNewSongs && newSongs.length === 0" description="暂无最新歌曲" />
       </div>
     </div>
 
@@ -98,14 +132,58 @@
         <el-empty v-if="!loadingPlaylists && playlists.length === 0" description="暂无推荐" />
       </div>
     </div>
+
+    <!-- 推荐歌手 Section -->
+    <div class="section">
+      <div class="section-header">
+        <div class="title-with-icon">
+          <el-icon class="section-icon" color="#409EFF"><Mic /></el-icon>
+          <h2>热门歌手</h2>
+        </div>
+        <!-- <span class="more">更多 <el-icon><ArrowRight /></el-icon></span> -->
+      </div>
+      <div class="scroll-container" v-loading="loadingSingers">
+        <div 
+          v-for="singer in singers" 
+          :key="singer.user_id" 
+          class="scroll-item singer-item"
+          @click="handleSingerClick(singer)"
+        >
+          <div class="image-wrapper round">
+            <el-image :src="singer.user_avatar" class="cover" fit="cover" lazy>
+               <template #error>
+                 <div class="image-placeholder"><el-icon><User /></el-icon></div>
+               </template>
+            </el-image>
+          </div>
+          <div class="info">
+            <div class="name text-ellipsis">{{ singer.user_name }}</div>
+            <div class="count text-ellipsis">粉丝: {{ singer.followers_count || 0 }}</div>
+          </div>
+        </div>
+        <el-empty v-if="!loadingSingers && singers.length === 0" description="暂无推荐" />
+      </div>
+      <div class="pagination-wrapper" v-if="singerTotal > 0">
+        <el-pagination
+          v-model:current-page="singerPage"
+          :page-size="singerPageSize"
+          :total="singerTotal"
+          layout="prev, pager, next"
+          @current-change="handleSingerPageChange"
+          background
+          small
+        />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, ArrowRight, Headset, Collection, VideoPlay, View } from '@element-plus/icons-vue'
-import { getRecommendSongs, getRecommendPlaylists, type Song, type Playlist } from '@/api/music'
+import { Search, ArrowRight, Headset, Collection, VideoPlay, View, Mic, User, Timer } from '@element-plus/icons-vue'
+import { getRecommendSongs, getRecommendPlaylists, getSongs, type Song, type Playlist } from '@/api/music'
+import { getSingers, type UserInfo } from '@/api/user'
 import { usePlayerStore } from '@/stores/player'
 
 const router = useRouter()
@@ -113,9 +191,16 @@ const playerStore = usePlayerStore()
 
 const searchKeyword = ref('')
 const songs = ref<Song[]>([])
+const newSongs = ref<Song[]>([])
 const playlists = ref<Playlist[]>([])
+const singers = ref<UserInfo[]>([])
 const loadingSongs = ref(false)
+const loadingNewSongs = ref(false)
 const loadingPlaylists = ref(false)
+const loadingSingers = ref(false)
+const singerPage = ref(1)
+const singerTotal = ref(0)
+const singerPageSize = 10
 
 const bannerSongs = computed(() => songs.value.slice(0, 5))
 
@@ -126,6 +211,10 @@ const handleSearch = () => {
 }
 
 const handleSongClick = (song: Song) => {
+  router.push(`/songs/${song.song_id}`)
+}
+
+const handlePlay = (song: Song) => {
   playerStore.setPlaylist([song])
   playerStore.playSong(song)
 }
@@ -134,15 +223,46 @@ const handlePlaylistClick = (playlist: Playlist) => {
   router.push(`/playlists/${playlist.playlist_id}`)
 }
 
+const handleSingerClick = (singer: UserInfo) => {
+  router.push(`/user/${singer.user_id}`)
+}
+
+const loadSingersData = async () => {
+  loadingSingers.value = true
+  try {
+    const res = await getSingers(singerPage.value, singerPageSize)
+    singers.value = res.results || []
+    singerTotal.value = res.count || 0
+  } catch (error) {
+    console.error('Failed to load singers', error)
+  } finally {
+    loadingSingers.value = false
+  }
+}
+
+const handleSingerPageChange = (page: number) => {
+  singerPage.value = page
+  loadSingersData()
+}
+
 const loadData = async () => {
   loadingSongs.value = true
   try {
     songs.value = await getRecommendSongs()
   } catch (error) {
     console.error('Failed to load songs', error)
-    // ElMessage.error('加载推荐歌曲失败')
   } finally {
     loadingSongs.value = false
+  }
+
+  loadingNewSongs.value = true
+  try {
+    const res = await getSongs({ ordering: '-song_createtime', page_size: 10 })
+    newSongs.value = res.results || []
+  } catch (error) {
+    console.error('Failed to load new songs', error)
+  } finally {
+    loadingNewSongs.value = false
   }
 
   loadingPlaylists.value = true
@@ -151,10 +271,11 @@ const loadData = async () => {
     playlists.value = res.data.playlists
   } catch (error) {
     console.error('Failed to load playlists', error)
-    // ElMessage.error('加载推荐歌单失败')
   } finally {
     loadingPlaylists.value = false
   }
+
+  loadSingersData()
 }
 
 onMounted(() => {
@@ -173,8 +294,10 @@ onMounted(() => {
   position: sticky;
   top: 0;
   z-index: 100;
-  background-color: #f5f5f5;
+  background-color: #f5f5f5; /* Match page bg if needed, or white */
   padding: 10px 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
 }
 
 .section {
@@ -186,6 +309,16 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+}
+
+.title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-icon {
+  font-size: 20px;
 }
 
 .section-header h2 {
@@ -208,46 +341,90 @@ onMounted(() => {
   overflow-x: auto;
   gap: 16px;
   padding-bottom: 10px;
-  scrollbar-width: none;
+  scrollbar-width: none; /* Firefox */
 }
 
 .scroll-container::-webkit-scrollbar {
-  display: none;
+  display: none; /* Chrome/Safari */
 }
 
 .scroll-item {
-  flex: 0 0 120px;
+  flex: 0 0 140px;
   cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.scroll-item:hover {
+  transform: translateY(-5px);
+}
+
+.image-wrapper {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.image-wrapper.round {
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 .cover {
-  width: 120px;
-  height: 120px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  background-color: #e0e0e0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s;
+}
+
+.scroll-item:hover .cover {
+  transform: scale(1.1);
 }
 
 .image-placeholder {
-  color: #909399;
-  font-size: 24px;
-}
-
-.info {
   width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f2f5;
+  color: #909399;
+  font-size: 32px;
 }
 
-.name {
+.play-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.play-overlay .el-icon {
+  font-size: 32px;
+  color: #fff;
+}
+
+.scroll-item:hover .play-overlay {
+  opacity: 1;
+}
+
+.info .name {
   font-size: 14px;
-  font-weight: 500;
   color: #303133;
+  font-weight: 500;
   margin-bottom: 4px;
 }
 
-.singer, .count {
+.info .singer, .info .count {
   font-size: 12px;
   color: #909399;
 }
@@ -258,8 +435,9 @@ onMounted(() => {
   text-overflow: ellipsis;
 }
 
+/* Banner Styles */
 .banner-section {
-  margin-bottom: 24px;
+  margin-bottom: 30px;
 }
 
 .banner-item {
@@ -271,33 +449,25 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.banner-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-}
-
 .banner-content {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
-  color: white;
-  z-index: 2;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  color: #fff;
 }
 
 .banner-content h3 {
-  margin: 0 0 4px;
+  margin: 0 0 5px 0;
   font-size: 18px;
 }
 
 .banner-content p {
   margin: 0;
   font-size: 14px;
-  opacity: 0.9;
+  opacity: 0.8;
 }
 
 .play-icon-overlay {
@@ -305,53 +475,19 @@ onMounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 40px;
-  color: white;
+  font-size: 48px;
+  color: rgba(255,255,255,0.8);
   opacity: 0;
   transition: opacity 0.3s;
-  z-index: 2;
 }
 
 .banner-item:hover .play-icon-overlay {
   opacity: 1;
 }
 
-.title-with-icon {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-icon {
-  font-size: 20px;
-}
-
-.image-wrapper {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  margin-bottom: 8px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.play-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.3);
+.pagination-wrapper {
   display: flex;
   justify-content: center;
-  align-items: center;
-  opacity: 0;
-  transition: opacity 0.3s;
-  color: white;
-  font-size: 24px;
-}
-
-.scroll-item:hover .play-overlay {
-  opacity: 1;
+  margin-top: 16px;
 }
 </style>

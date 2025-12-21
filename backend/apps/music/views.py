@@ -372,8 +372,8 @@ class SongViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         """权限控制"""
-        if self.action in ['list', 'retrieve']:
-            # 列表和详情允许所有用户访问
+        if self.action in ['list', 'retrieve', 'recommend']:
+            # 列表、详情和推荐允许所有用户访问
             return [permissions.AllowAny()]
         elif self.action == 'create':
             # 创建需要歌手权限

@@ -85,7 +85,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         """权限控制"""
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'recommend']:
             return [permissions.AllowAny()]
         else:
             return [permissions.IsAuthenticated()]

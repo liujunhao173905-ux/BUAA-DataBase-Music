@@ -1,14 +1,12 @@
 <template>
   <div class="admin-dashboard">
     <div class="container">
-      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
-        <el-button type="default" @click="handleBack">
-          <el-icon><ArrowLeft /></el-icon> 返回
-        </el-button>
-        <h2 class="page-title">管理员仪表板</h2>
-      </div>
+      <el-card shadow="hover" class="page-card">
+        <template #header>
+          <el-page-header @back="handleBack" content="管理员仪表板" title="返回" />
+        </template>
       
-      <div class="stats-cards">
+        <div class="stats-cards">
         <div class="stat-card">
           <h3>待审核歌曲</h3>
           <p class="stat-number">{{ pendingSongs }}</p>
@@ -44,6 +42,7 @@
           <li><router-link to="/admin/check-login-logs">登录日志</router-link></li>
         </ul>
       </div>
+      </el-card>
     </div>
   </div>
 </template>

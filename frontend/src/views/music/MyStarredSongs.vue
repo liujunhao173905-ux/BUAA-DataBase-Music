@@ -2,18 +2,17 @@
   <div class="my-starred-songs-container">
     <el-card class="starred-songs-card" :class="{ 'no-border': isEmbedded }">
       <template #header>
-        <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 16px;" v-if="!isEmbedded">
-            <el-button type="default" @click="handleBack" circle>
-              <el-icon><ArrowLeft /></el-icon>
+        <el-page-header v-if="!isEmbedded" @back="handleBack" content="我的收藏" title="返回">
+           <template #extra>
+             <el-button type="primary" round @click="handlePlayAll" :disabled="songs.length === 0">
+               <el-icon class="el-icon--left"><VideoPlay /></el-icon> 播放全部
+             </el-button>
+           </template>
+        </el-page-header>
+        <div v-else class="card-header" style="display: flex; justify-content: flex-end;">
+            <el-button type="primary" round @click="handlePlayAll" :disabled="songs.length === 0">
+              <el-icon class="el-icon--left"><VideoPlay /></el-icon> 播放全部
             </el-button>
-            <h2>我的收藏</h2>
-          </div>
-          <div v-else></div> <!-- Spacer -->
-          
-          <el-button type="primary" round @click="handlePlayAll" :disabled="songs.length === 0">
-            <el-icon class="el-icon--left"><VideoPlay /></el-icon> 播放全部
-          </el-button>
         </div>
       </template>
       
@@ -24,8 +23,11 @@
             <el-table-column prop="song_name" label="歌曲名称" min-width="200">
               <template #default="scope">
                 <div class="song-info" @click="handleSongClick(scope.row)" style="cursor: pointer;">
-                  <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
-                  <span>{{ scope.row.song_name }}</span>
+                  <div class="cover-wrapper">
+                    <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
+                    <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
+                  </div>
+                  <span class="song-name">{{ scope.row.song_name }}</span>
                   <el-tag size="small" type="danger" v-if="scope.row.song_price > 0 && !scope.row.is_bought" effect="plain" style="margin-left: 8px">VIP</el-tag>
                 </div>
               </template>
@@ -211,12 +213,28 @@ onMounted(() => {
 }
 
 .starred-songs-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }
 
 .starred-songs-card.no-border {
   border: none;
   box-shadow: none;
+  background: transparent;
+}
+
+:deep(.el-table) {
+  background-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: rgba(255, 255, 255, 0.5);
+  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.5);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 .card-header {
@@ -228,18 +246,33 @@ onMounted(() => {
 .song-info {
   display: flex;
   align-items: center;
+  padding: 4px 0;
+  transition: transform 0.2s;
 }
 
-.song-name {
-  font-weight: 500;
-  color: #303133;
+.song-info:hover {
+  transform: translateX(4px);
+}
+
+.cover-wrapper {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin-right: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .song-cover {
-  width: 40px;
-  height: 40px;
-  margin-right: 10px;
-  border-radius: 4px;
+  width: 100%;
+  height: 100%;
+  display: block;
+  transition: transform 0.3s;
+}
+
+.cover-wrapper:hover .song-cover {
+  transform: scale(1.1);
 }
 
 .hover-play {
@@ -248,21 +281,28 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.3);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s;
-  color: white;
+  transition: opacity 0.3s;
+  color: #fff;
+  font-size: 24px;
 }
 
-.song-info:hover .hover-play {
+.cover-wrapper:hover .hover-play {
   opacity: 1;
 }
 
+.song-name {
+  font-weight: 600;
+  color: #303133;
+  font-size: 15px;
+}
+
 .pagination-container {
-  margin-top: 20px;
+  margin-top: 24px;
   display: flex;
   justify-content: center;
 }

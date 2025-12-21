@@ -1,7 +1,7 @@
 <template>
   <div class="mine-container">
     <!-- User Profile Section -->
-    <div class="profile-card" @click="$router.push('/profile')">
+    <el-card class="profile-card" shadow="hover" :body-style="{ padding: '20px' }" @click="$router.push('/profile')">
       <div class="profile-content">
         <el-avatar :size="64" :src="authStore.user?.user_avatar" class="avatar">
           {{ authStore.user?.user_name?.charAt(0)?.toUpperCase() }}
@@ -17,7 +17,7 @@
         </div>
         <el-icon class="arrow-icon"><ArrowRight /></el-icon>
       </div>
-    </div>
+    </el-card>
 
     <!-- Function Icons Section (Scrollable) -->
     <div class="function-scroll-container" v-if="authStore.isAuthenticated">
@@ -148,13 +148,12 @@ const handleLogout = () => {
 }
 
 .profile-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   cursor: pointer;
   transition: transform 0.2s;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .profile-card:active {

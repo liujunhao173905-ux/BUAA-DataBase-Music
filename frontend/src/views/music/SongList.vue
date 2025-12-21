@@ -1,10 +1,10 @@
 <template>
   <div class="song-list-page">
-    <el-card class="filter-card">
+    <el-card class="filter-card" shadow="never">
+      <template #header>
+        <el-page-header @back="handleBack" content="发现音乐" title="返回" />
+      </template>
       <div class="filter-row">
-        <el-button type="default" @click="handleBack" style="margin-right: 10px;">
-          <el-icon><ArrowLeft /></el-icon> 返回
-        </el-button>
         <el-input
           v-model="filters.search"
           :placeholder="getSearchPlaceholder()"
@@ -355,11 +355,18 @@ watch(
 
 <style scoped>
 .song-list-page {
-  padding: 24px;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .filter-card {
   margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }
 
 .filter-row {
@@ -382,11 +389,17 @@ watch(
 .song-card {
   cursor: pointer;
   margin-bottom: 20px;
-  transition: transform 0.3s;
+  transition: transform 0.3s, box-shadow 0.3s;
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .song-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
 .cover-container {
@@ -406,14 +419,14 @@ watch(
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.3);
   display: flex;
   justify-content: center;
   align-items: center;
   opacity: 0;
   transition: opacity 0.3s;
   color: white;
-  font-size: 40px;
+  font-size: 48px;
   backdrop-filter: blur(2px);
 }
 
@@ -432,23 +445,26 @@ watch(
 }
 
 .song-info {
-  padding: 12px 0;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .song-info h3 {
   margin: 0;
   font-size: 16px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #303133;
 }
 
 .song-info p {
   margin: 0;
   color: #909399;
+  font-size: 13px;
 }
 
 .price {
@@ -458,16 +474,23 @@ watch(
 
 .song-count {
   color: #409eff;
+  font-size: 13px;
 }
 
 .tag {
+  display: inline-block;
+  background-color: #f0f9eb;
   color: #67c23a;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 
 .pagination-wrapper {
-  margin-top: 20px;
   display: flex;
   justify-content: center;
+  margin-top: 40px;
+  margin-bottom: 20px;
 }
 </style>
 

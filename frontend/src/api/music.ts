@@ -50,7 +50,7 @@ export interface PlaylistSong {
 
 // 获取歌曲列表
 export const getSongs = (params?: any) => {
-  return request.get<{ count: number; next: string | null; previous: string | null; results: Song[] }>('/music/songs/', { params }) as unknown as { count: number; next: string | null; previous: string | null; results: Song[] }
+  return request.get<{ count: number; next: string | null; previous: string | null; results: Song[] }>('/music/songs/', { params })
 }
 
 // 获取歌曲详情
@@ -186,23 +186,12 @@ export const getPlaylistDetail = (playlistId: number) => {
 
 // 推荐歌单
 export const getRecommendPlaylists = () => {
-  return request.get<{ data: { playlists: Playlist[] } }>('/playlists/recommend/') as unknown as { data: { playlists: Playlist[] } }
+  return request.get<{ data: { playlists: Playlist[] } }>('/playlists/recommend/')
 }
 
 // 推荐歌曲
 export const getRecommendSongs = () => {
-  return request.get<{ data: { songs: Song[] } }>('/music/songs/recommend/')
-    .then(res => {
-        // Adjust based on actual API response if needed. 
-        // Assuming backend returns { results: Song[] } or similar for list endpoints, 
-        // but for recommend it might be different. 
-        // Based on Home.vue usage: songs.value = await getRecommendSongs() -> expects Song[]
-        // So we should return the array directly or handle the response structure.
-        // Let's assume standard pagination result or list.
-        if ((res as any).results) return (res as any).results;
-        if (Array.isArray(res)) return res;
-        return [];
-    })
+  return request.get<Song[]>('/music/songs/recommend/')
 }
 
 // 创建歌单

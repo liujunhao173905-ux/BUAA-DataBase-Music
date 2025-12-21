@@ -1,15 +1,13 @@
 <template>
   <div class="check-login-logs">
     <div class="container">
-      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
-        <el-button type="default" @click="handleBack">
-          <el-icon><ArrowLeft /></el-icon> 返回
-        </el-button>
-        <h2 class="page-title">登录日志</h2>
-      </div>
+      <el-card shadow="hover" class="page-card">
+        <template #header>
+          <el-page-header @back="handleBack" content="登录日志" title="返回" />
+        </template>
 
-      <!-- 登录日志列表 -->
-      <div v-loading="loading" class="logs-list">
+        <!-- 登录日志列表 -->
+        <div v-loading="loading" class="logs-list-container">
         <div v-if="logs.length === 0" class="empty-state">
           暂无登录日志
         </div>
@@ -46,6 +44,7 @@
           </button>
         </div>
       </div>
+      </el-card>
     </div>
   </div>
 </template>

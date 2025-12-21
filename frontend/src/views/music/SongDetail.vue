@@ -1,69 +1,105 @@
 <template>
   <div class="song-detail-page">
-    <el-card class="song-card" v-loading="loading">
-      <template #header>
-        <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <el-button type="default" @click="handleBack">
-              <el-icon><ArrowLeft /></el-icon> 返回
-            </el-button>
-            <h2>歌曲详情</h2>
-          </div>
-        </div>
-      </template>
-      <template v-if="song">
-        <div class="song-content">
-          <el-image
-            :src="song.song_cover || ''"
-            fit="cover"
-            class="song-cover"
-          >
-            <template #error>
-              <div class="image-slot">暂无封面</div>
-            </template>
-          </el-image>
-          <div class="song-info">
-            <h2>{{ song.song_name }}</h2>
-            <p class="singer">歌手：{{ song.song_singer_name }}</p>
-            <p>时长：{{ songDurationText }}</p>
-            <p>价格：{{ formatPrice(song.song_price) }}</p>
-            <p>收藏：{{ song.star_count }} 次 · 购买：{{ song.buy_count }} 次</p>
+    <!-- Dynamic Background -->
+    <div class="page-bg" v-if="song" :style="{ backgroundImage: `url(${song.song_cover})` }"></div>
+    <div class="page-bg-overlay"></div>
 
-            <div class="action-buttons">
-              <div v-if="song.song_status === 1">
-                <el-button 
-                  type="primary" 
-                  size="large"
-                  @click="handlePlay"
-                >
-                  <el-icon style="margin-right: 4px">
-                    <VideoPlay />
-                  </el-icon>
-                  {{ '立即播放' }}
-                </el-button>
+    <div class="content-wrapper">
+      <el-card class="song-card" shadow="never" v-loading="loading">
+        <template #header>
+          <el-page-header @back="handleBack" content="歌曲详情" title="返回" />
+        </template>
+        <template v-if="song">
+          <div class="song-header">
+            <div class="cover-container">
+              <div class="vinyl-record" :class="{ 'playing': isPlayingThisSong }">
+                <div class="vinyl-inner"></div>
+              </div>
+              <el-image
+                :src="song.song_cover || ''"
+                fit="cover"
+                class="song-cover"
+                :class="{ 'playing': isPlayingThisSong }"
+              >
+                <template #error>
+                  <div class="image-slot">暂无封面</div>
+                </template>
+              </el-image>
+            </div>
+            
+            <div class="song-info">
+              <h1 class="song-title">{{ song.song_name }}</h1>
+              <div class="song-meta">
+                <span class="singer"><el-icon><Microphone /></el-icon> {{ song.song_singer_name }}</span>
+                <el-divider direction="vertical" />
+                <span><el-icon><Timer /></el-icon> {{ songDurationText }}</span>
+              </div>
+              
+              <div class="tags-row">
+                 <el-tag effect="dark" type="warning" v-if="song.song_price > 0" class="price-tag">
+                   ¥{{ Number(song.song_price).toFixed(2) }}
+                 </el-tag>
+                 <el-tag effect="plain" type="info" v-else class="price-tag">免费</el-tag>
+                 
+                 <div class="stats">
+                    <span class="stat-item"><el-icon><Star /></el-icon> {{ song.star_count }} 收藏</span>
+                    <span class="stat-item"><el-icon><Goods /></el-icon> {{ song.buy_count }} 购买</span>
+                 </div>
+              </div>
 
-                <el-button
-                  type="warning"
-                  :loading="starLoading"
-                  @click="handleToggleStar"
-                >
-                  {{ song.is_starred ? '取消收藏' : '收藏歌曲' }}
-                </el-button>
-                <el-button
-                  type="primary"
-                  :disabled="song.is_bought"
-                  :loading="buyLoading"
-                  @click="openBuyDialog"
-                >
-                  {{ song.is_bought ? '已购买' : buyButtonText }}
-                </el-button>
-                <el-button
-                  type="info"
-                  :loading="playlistLoading"
-                  @click="openPlaylistDialog"
-                >
-                  {{ '加入歌单' }}
-                </el-button>
+              <div class="action-buttons">
+                <div v-if="song.song_status === 1" class="btn-group">
+                  <el-button 
+                    type="primary" 
+                    size="large"
+                    class="play-btn-large"
+                    @click="handlePlay"
+                    round
+                  >
+                    <el-icon class="btn-icon">
+                      <VideoPause v-if="isPlayingThisSong" />
+                      <VideoPlay v-else />
+                    </el-icon>
+                    {{ isPlayingThisSong ? '暂停播放' : '立即播放' }}
+                  </el-button>
+
+                  <el-button
+                    :type="song.is_starred ? 'warning' : 'default'"
+                    :plain="!song.is_starred"
+                    size="large"
+                    :loading="starLoading"
+                    @click="handleToggleStar"
+                    circle
+                    class="action-btn-circle"
+                  >
+                    <el-icon><StarFilled v-if="song.is_starred" /><Star v-else /></el-icon>
+                  </el-button>
+
+                  <el-button
+                    :type="song.is_bought ? 'success' : 'danger'"
+                    :plain="!song.is_bought"
+                    size="large"
+                    :disabled="song.is_bought"
+                    :loading="buyLoading"
+                    @click="openBuyDialog"
+                    round
+                  >
+                     <el-icon style="margin-right: 4px"><Money /></el-icon>
+                    {{ song.is_bought ? '已购买' : '购买歌曲' }}
+                  </el-button>
+                  
+                  <el-button
+                    type="info"
+                    plain
+                    size="large"
+                    :loading="playlistLoading"
+                    @click="openPlaylistDialog"
+                    circle
+                    class="action-btn-circle"
+                  >
+                    <el-icon><Plus /></el-icon>
+                  </el-button>
+
 
                 <!-- 购买确认弹窗 -->
                 <el-dialog
@@ -108,6 +144,7 @@
       <el-empty v-else-if="!loading" description="未找到歌曲" />
     </el-card>
   </div>
+  </div>
 
   <el-dialog
     v-model="playlistDialogVisible"
@@ -133,7 +170,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, VideoPlay, VideoPause } from '@element-plus/icons-vue'
+import { VideoPlay, VideoPause } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { useAuthStore } from '@/stores/auth'
 import { usePlayerStore } from '@/stores/player'
@@ -147,9 +184,6 @@ const song = ref<any | null>(null)
 const loading = ref(false)
 const starLoading = ref(false)
 const buyLoading = ref(false)
-
-const playLists = ref<any[]>([])
-const playListsLoading = ref(false)
 
 /* ----- 购买确认弹窗相关 ----- */
 const buyDialogVisible = ref(false)
@@ -265,12 +299,6 @@ const confirmBuy = async () => {
   }
 }
 
-const buyButtonText = computed(() => {
-  if (!song.value) return '购买'
-  const price = Number(song.value.song_price)
-  return !isNaN(price) && price > 0 ? `购买 - ¥${price.toFixed(2)}` : '购买'
-})
-
 const fetchSongDetail = async () => {
   const songId = route.params.id
   if (!songId) return
@@ -339,21 +367,6 @@ const handleToggleStar = async () => {
   }
 }
 
-const handleBuySong = async () => {
-  if (!song.value || song.value.is_bought || !ensureLoggedIn()) return
-  buyLoading.value = true
-  try {
-    await request.post(`/music/songs/${song.value.song_id}/buy/`)
-    song.value.is_bought = true
-    song.value.buy_count = (song.value.buy_count || 0) + 1
-    ElMessage.success('购买成功')
-  } catch (error) {
-    ElMessage.error('购买失败，请稍后再试')
-  } finally {
-    buyLoading.value = false
-  }
-}
-
 const formatPrice = (price: any) => {
   const numPrice = Number(price)
   console.log('price: ', numPrice)
@@ -379,22 +392,194 @@ watch(
 
 <style scoped>
 .song-detail-page {
-  padding: 24px;
+  position: relative;
+  min-height: 100vh;
+  padding: 40px 24px;
+  overflow: hidden;
+}
+
+.page-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(60px) brightness(0.6);
+  z-index: 0;
+  transform: scale(1.1);
+}
+
+.page-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.6));
+  z-index: 1;
+}
+
+.content-wrapper {
+  position: relative;
+  z-index: 2;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .song-card {
-  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 24px;
+  overflow: visible;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-.song-content {
+.song-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
+  gap: 60px;
+  padding: 20px;
+  align-items: center;
+}
+
+.cover-container {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vinyl-record {
+  position: absolute;
+  top: 0;
+  right: -40px;
+  width: 240px;
+  height: 240px;
+  background: #111;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.5s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.vinyl-record.playing {
+  animation: spin 8s linear infinite;
+}
+
+.vinyl-inner {
+  width: 80px;
+  height: 80px;
+  background: #333;
+  border-radius: 50%;
+  border: 2px solid #555;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .song-cover {
-  width: 320px;
-  height: 320px;
+  position: relative;
+  width: 260px;
+  height: 260px;
+  border-radius: 12px;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+  z-index: 2;
+  transition: transform 0.3s;
+}
+
+.song-cover:hover {
+  transform: scale(1.02);
+}
+
+.song-info {
+  flex: 1;
+  min-width: 300px;
+}
+
+.song-title {
+  font-size: 36px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 16px 0;
+  line-height: 1.2;
+}
+
+.song-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #606266;
+  font-size: 16px;
+  margin-bottom: 24px;
+}
+
+.singer {
+  color: #409eff;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tags-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.price-tag {
+  font-size: 16px;
+  padding: 8px 16px;
+  height: auto;
+}
+
+.stats {
+  display: flex;
+  gap: 20px;
+  color: #909399;
+  font-size: 14px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.action-buttons {
+  margin-top: 20px;
+}
+
+.btn-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.play-btn-large {
+  padding: 12px 32px;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.play-btn-large:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.5);
+}
+
+.action-btn-circle {
+  font-size: 18px;
 }
 
 .image-slot {
@@ -403,41 +588,29 @@ watch(
   justify-content: center;
   width: 100%;
   height: 100%;
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
   color: #909399;
 }
 
-.song-info {
-  flex: 1;
-  min-width: 280px;
-}
-
-.song-info h2 {
-  margin: 0 0 10px 0;
-}
-
-.singer {
-  font-weight: bold;
-}
-
-.action-buttons {
-  margin: 20px 0;
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.audio-player {
-  width: 100%;
-  margin-top: 20px;
-}
-
-.playlist-item {
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-.playlist-item:last-child {
-  border-bottom: none;
+/* Responsive */
+@media (max-width: 768px) {
+  .song-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 30px;
+  }
+  
+  .vinyl-record {
+    display: none; /* Hide vinyl on mobile to save space */
+  }
+  
+  .song-meta, .tags-row, .btn-group {
+    justify-content: center;
+  }
+  
+  .song-title {
+    font-size: 28px;
+  }
 }
 </style>
 

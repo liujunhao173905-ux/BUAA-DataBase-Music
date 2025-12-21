@@ -1,6 +1,6 @@
 <template>
   <div class="register-container">
-    <div class="register-box">
+    <el-card class="register-card">
       <h2 class="register-title">注册</h2>
       <el-form
         ref="registerFormRef"
@@ -67,14 +67,14 @@
           </div>
         </el-form-item>
       </el-form>
-    </div>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { type FormInstance, type FormRules } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -91,7 +91,7 @@ const registerForm = reactive({
   password_confirm: '',
 })
 
-const validatePasswordConfirm = (rule: any, value: any, callback: any) => {
+const validatePasswordConfirm = (_rule: any, value: any, callback: any) => {
   if (value !== registerForm.password) {
     callback(new Error('两次输入的密码不一致'))
   } else {
@@ -99,7 +99,7 @@ const validatePasswordConfirm = (rule: any, value: any, callback: any) => {
   }
 }
 
-const validateMobile = (rule: any, value: any, callback: any) => {
+const validateMobile = (_rule: any, value: any, callback: any) => {
   if (value && !/^1[3-9]\d{9}$/.test(value)) {
     callback(new Error('请输入正确的手机号'))
   } else {
@@ -151,16 +151,15 @@ const handleRegister = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* background is handled by App.vue globally */
   padding: 20px;
 }
 
-.register-box {
+.register-card {
   width: 500px;
-  padding: 40px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .register-title {

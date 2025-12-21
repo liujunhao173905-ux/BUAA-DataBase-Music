@@ -1,15 +1,8 @@
 <template>
   <div class="create-playlist-container">
-    <el-card class="create-playlist-card">
+    <el-card class="create-playlist-card" shadow="never">
       <template #header>
-        <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <el-button type="default" @click="handleBack">
-              <el-icon><ArrowLeft /></el-icon> 返回
-            </el-button>
-            <h2>编辑歌单</h2>
-          </div>
-        </div>
+        <el-page-header @back="handleBack" content="编辑歌单" title="返回" />
       </template>
 
       <el-form ref="formRef" :model="formData" label-width="80px" class="create-playlist-form">

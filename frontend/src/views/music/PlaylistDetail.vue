@@ -1,107 +1,142 @@
 <template>
   <div class="playlist-detail-page">
-    <el-card v-if="loading" shadow="never">
-      <el-skeleton :rows="6" animated />
-    </el-card>
-    
-    <el-card v-else shadow="never" class="playlist-card">
-      <div class="playlist-header">
-        <el-image
-          :src="playlist.playlist_cover || ''"
-          fit="cover"
-          class="playlist-cover"
-        >
-          <template #error>
-            <div class="image-slot">暂无封面</div>
-          </template>
-        </el-image>
-        <div class="playlist-info">
-          <el-button type="default" @click="handleBack" style="margin-bottom: 10px;">
-            <el-icon><ArrowLeft /></el-icon> 返回
-          </el-button>
-          <h1>{{ playlist.playlist_name }}</h1>
-          <p class="playlist-creator">创建者：{{ playlist.playlist_creator_name }}</p>
-          <p class="playlist-songs-count">{{ playlist.song_count }}首歌曲</p>
-          <p class="playlist-date">创建时间：{{ formatDate(playlist.playlist_createtime) }}</p>
-          <div class="playlist-intro-container">
-            <h3>歌单介绍</h3>
-            <p class="playlist-intro">{{ playlist.playlist_intro || '暂无介绍' }}</p>
-          </div>
-          <div class="playlist-actions">
-            <el-button 
-              :loading="starLoading"
-              @click="toggleStar"
-              :type="isStarred ? 'primary' : 'default'"
-              style="margin-right: 10px;"
-            >
-              {{ isStarred ? '取消收藏' : '收藏歌单' }}
-            </el-button>
-            <el-button type="success" @click="handlePlayAll" :disabled="songs.length === 0">
-                <el-icon><VideoPlay /></el-icon> 播放全部
-            </el-button>
-          </div>
-        </div>
-      </div>
+    <!-- Dynamic Background -->
+    <div class="page-bg" v-if="playlist.playlist_cover" :style="{ backgroundImage: `url(${playlist.playlist_cover})` }"></div>
+    <div class="page-bg-overlay"></div>
+
+    <div class="content-wrapper">
+      <el-card v-if="loading" shadow="never" class="glass-card">
+        <el-skeleton :rows="6" animated />
+      </el-card>
       
-      <div class="playlist-songs">
-        <h2>歌单歌曲</h2>
-        <el-table
-          :data="songs"
-          style="width: 100%"
-          stripe
-          @row-dblclick="handlePlaySong"
-        >
-          <el-table-column label="序号" type="index" width="60" />
-          <el-table-column label="歌曲名称" min-width="200">
-            <template #default="scope">
-              <div class="song-info-cell" @click="handlePlaySong(scope.row)">
-                <div class="cover-wrapper">
-                  <el-image 
-                    v-if="scope.row.song_cover" 
-                    :src="scope.row.song_cover" 
-                    class="song-cover-mini" 
-                    fit="cover" 
-                  />
-                  <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
-                </div>
-                <span class="song-name">{{ scope.row.song_name }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="歌手" min-width="150">
-            <template #default="scope">
-              <span>{{ scope.row.song_singer_name }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="时长" width="100">
-            <template #default="scope">
-              <span>{{ formatDuration(scope.row.song_duration) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="价格" width="100">
-            <template #default="scope">
-              <span class="price">{{ formatPrice(scope.row.song_price) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="150" fixed="right">
-            <template #default="scope">
-              <el-button
-                type="primary"
-                size="small"
-                @click.stop="handleDetail(scope.row)"
-                plain>详情</el-button>
-              <el-button type="primary" link @click.stop="handlePlaySong(scope.row)">
-                <el-icon><VideoPlay /></el-icon> 播放
+      <el-card v-else shadow="never" class="glass-card">
+        <template #header>
+          <el-page-header @back="handleBack" content="歌单详情" title="返回" />
+        </template>
+        <div class="playlist-header">
+          <div class="cover-container">
+            <el-image
+              :src="playlist.playlist_cover || ''"
+              fit="cover"
+              class="playlist-cover"
+            >
+              <template #error>
+                <div class="image-slot">暂无封面</div>
+              </template>
+            </el-image>
+          </div>
+          <div class="playlist-info">
+            <h1 class="playlist-title">{{ playlist.playlist_name }}</h1>
+            <div class="playlist-meta">
+              <p class="playlist-creator">
+                <el-icon><User /></el-icon> 创建者：{{ playlist.playlist_creator_name }}
+              </p>
+              <p class="playlist-date">
+                <el-icon><Calendar /></el-icon> 创建时间：{{ formatDate(playlist.playlist_createtime) }}
+              </p>
+              <p class="playlist-songs-count">
+                <el-icon><Headset /></el-icon> {{ playlist.song_count }}首歌曲
+              </p>
+            </div>
+            
+            <div class="playlist-intro-container" v-if="playlist.playlist_intro">
+              <p class="playlist-intro">{{ playlist.playlist_intro }}</p>
+            </div>
+
+            <div class="playlist-actions">
+              <el-button 
+                type="primary" 
+                class="play-all-btn"
+                @click="handlePlayAll" 
+                :disabled="songs.length === 0"
+                round
+              >
+                  <el-icon><VideoPlay /></el-icon> 播放全部
               </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        
-        <div v-if="songs.length === 0" class="empty-songs">
-          <el-empty description="暂无歌曲" />
+              <el-button 
+                :loading="starLoading"
+                @click="toggleStar"
+                :type="isStarred ? 'warning' : 'default'"
+                :plain="!isStarred"
+                round
+                class="star-btn"
+              >
+                <el-icon><StarFilled v-if="isStarred" /><Star v-else /></el-icon>
+                {{ isStarred ? '已收藏' : '收藏歌单' }}
+              </el-button>
+            </div>
+          </div>
         </div>
-      </div>
-    </el-card>
+        
+        <div class="playlist-songs">
+          <h2>歌曲列表</h2>
+          <el-table
+            :data="songs"
+            style="width: 100%"
+            class="transparent-table"
+            :row-class-name="tableRowClassName"
+            @row-dblclick="handlePlaySong"
+          >
+            <el-table-column label="序号" type="index" width="60" align="center" />
+            <el-table-column label="歌曲名称" min-width="200">
+              <template #default="scope">
+                <div class="song-info-cell" @click="handlePlaySong(scope.row)">
+                  <div class="cover-wrapper">
+                    <el-image 
+                      v-if="scope.row.song_cover" 
+                      :src="scope.row.song_cover" 
+                      class="song-cover-mini" 
+                      fit="cover" 
+                    />
+                    <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
+                  </div>
+                  <span class="song-name" :class="{ 'active': isPlaying(scope.row) }">{{ scope.row.song_name }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="歌手" min-width="150">
+              <template #default="scope">
+                <span class="singer-name">{{ scope.row.song_singer_name }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="时长" width="100">
+              <template #default="scope">
+                <span class="duration">{{ formatDuration(scope.row.song_duration) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="价格" width="100">
+              <template #default="scope">
+                <span class="price">{{ formatPrice(scope.row.song_price) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="150" fixed="right" align="center">
+              <template #default="scope">
+                <div class="action-buttons">
+                  <el-button
+                    type="primary"
+                    link
+                    @click.stop="handleDetail(scope.row)"
+                  >
+                    详情
+                  </el-button>
+                  <el-button 
+                    type="primary" 
+                    link 
+                    @click.stop="handlePlaySong(scope.row)"
+                  >
+                    <el-icon><VideoPlay /></el-icon>
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+          
+          <div v-if="songs.length === 0" class="empty-songs">
+            <el-empty description="暂无歌曲" />
+          </div>
+        </div>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -109,7 +144,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, VideoPlay, Download } from '@element-plus/icons-vue'
+import { ArrowLeft, VideoPlay, Download, Star, StarFilled, User, Calendar, Headset } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { useAuthStore } from '@/stores/auth'
 import { usePlayerStore } from '@/stores/player'
@@ -133,13 +168,10 @@ onMounted(async () => {
 const loadPlaylistDetail = async () => {
   loading.value = true
   try {
-    // 确保playlistId是字符串类型
     const playlistId = String(route.params.id)
     const response = await request.get(`/playlists/${playlistId}/`)
     playlist.value = response
-    // 后端返回的歌曲列表字段名是'songs'，每个元素都有'song'属性包含实际歌曲信息
     songs.value = response.songs?.map((item: any) => item.song) || []
-    // 检查是否已收藏
     if (authStore.isAuthenticated) {
       checkStarStatus(playlistId)
     }
@@ -167,7 +199,6 @@ const toggleStar = async () => {
     return
   }
   if (authStore.user) {
-    // 不能收藏自己的歌单
     if (playlist.value.playlist_creator === authStore.user.user_id) {
       ElMessage.warning('不能收藏自己的歌单')
       return
@@ -180,7 +211,6 @@ const toggleStar = async () => {
   
   starLoading.value = true
   try {
-    // 确保playlistId是字符串类型
     const playlistId = String(route.params.id)
     if (isStarred.value) {
       await request.delete(`/playlists/${playlistId}/unstar/`)
@@ -209,7 +239,6 @@ const formatDuration = (duration: any) => {
 
 const formatPrice = (price: any) => {
   const numPrice = Number(price)
-  console.log('price: ', numPrice)
   if (price === null || price === undefined || isNaN(numPrice)) {
     return '免费'
   }
@@ -222,16 +251,14 @@ const formatPrice = (price: any) => {
 const formatDate = (dateString: string) => {
   if (!dateString) return ''
   const date = new Date(dateString)
-  return date.toLocaleString()
+  return date.toLocaleDateString()
 }
 
-// 查看歌曲详情
 const handleDetail = (song: Song) => {
   router.push(`/songs/${song.song_id}`)
 }
 
 const handleBack = () => {
-  // 检查路由历史记录，如果上一个页面是我的歌单页，则直接返回
   const fromPath = sessionStorage.getItem('fromPath')
   if (fromPath === '/my/playlists') {
     sessionStorage.removeItem('fromPath')
@@ -254,117 +281,190 @@ const handlePlaySong = (song: any) => {
   playerStore.setPlaylist(songs.value)
   playerStore.playSong(song)
 }
+
+const isPlaying = (song: any) => {
+  return playerStore.currentSong?.song_id === song.song_id
+}
+
+const tableRowClassName = ({ rowIndex }: { rowIndex: number }) => {
+  return 'transparent-row'
+}
 </script>
 
 <style scoped>
 .playlist-detail-page {
-  padding: 24px;
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
 }
 
-.playlist-card {
-  margin-bottom: 20px;
+.page-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(60px) brightness(0.6);
+  z-index: 0;
+  transform: scale(1.1);
+}
+
+.page-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.5));
+  z-index: 1;
+}
+
+.content-wrapper {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+:deep(.el-card__header) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 15px 20px;
 }
 
 .playlist-header {
   display: flex;
-  gap: 20px;
-  margin-bottom: 30px;
+  gap: 40px;
+  margin-bottom: 40px;
+  padding: 20px;
+}
+
+.cover-container {
+  flex-shrink: 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .playlist-cover {
-  width: 200px;
-  height: 200px;
-  border-radius: 8px;
-}
-
-.image-slot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background-color: #f5f5f5;
-  color: #909399;
+  width: 240px;
+  height: 240px;
+  display: block;
 }
 
 .playlist-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.playlist-info h1 {
-  font-size: 28px;
-  margin-bottom: 10px;
+.playlist-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 15px 0;
+  color: #303133;
 }
 
-.playlist-creator {
-  color: #909399;
-  margin-bottom: 5px;
+.playlist-meta {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  color: #606266;
+  font-size: 14px;
 }
 
-.playlist-songs-count {
-  color: #909399;
-  margin-bottom: 5px;
-}
-
-.playlist-date {
-  color: #909399;
-  margin-bottom: 15px;
+.playlist-meta p {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
 }
 
 .playlist-intro-container {
-  margin: 15px 0;
-}
-
-.playlist-intro-container h3 {
-  font-size: 16px;
-  margin-bottom: 8px;
-  color: #303133;
+  background: rgba(255, 255, 255, 0.4);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  flex: 1;
 }
 
 .playlist-intro {
   line-height: 1.6;
   color: #606266;
-  padding: 10px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
+  font-size: 14px;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .playlist-actions {
-  margin-top: 20px;
+  display: flex;
+  gap: 15px;
+}
+
+.play-all-btn {
+  padding: 12px 30px;
+  font-size: 16px;
 }
 
 .playlist-songs {
-  margin-top: 30px;
+  padding: 0 20px;
 }
 
 .playlist-songs h2 {
   font-size: 20px;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  color: #303133;
+  padding-left: 10px;
+  border-left: 4px solid #409eff;
 }
 
-.empty-songs {
-  margin-top: 50px;
+/* Transparent Table Styles */
+:deep(.el-table) {
+  background-color: transparent !important;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: rgba(255, 255, 255, 0.3);
+  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.5) !important;
 }
 
-.price {
-  color: #f56c6c;
-  font-weight: bold;
+:deep(.el-table th), :deep(.el-table tr) {
+  background-color: transparent !important;
+}
+
+:deep(.el-table td.el-table__cell), :deep(.el-table th.el-table__cell.is-leaf) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .song-info-cell {
   display: flex;
   align-items: center;
   cursor: pointer;
+  padding: 5px 0;
 }
 
 .cover-wrapper {
   position: relative;
-  width: 40px;
-  height: 40px;
-  margin-right: 10px;
-  border-radius: 4px;
+  width: 44px;
+  height: 44px;
+  margin-right: 15px;
+  border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .song-cover-mini {
@@ -379,13 +479,14 @@ const handlePlaySong = (song: any) => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
   opacity: 0;
   transition: opacity 0.2s;
   color: white;
+  font-size: 20px;
 }
 
 .song-info-cell:hover .hover-play {
@@ -395,5 +496,51 @@ const handlePlaySong = (song: any) => {
 .song-name {
   font-weight: 500;
   color: #303133;
+  font-size: 15px;
+}
+
+.song-name.active {
+  color: #409eff;
+  font-weight: 600;
+}
+
+.singer-name, .duration {
+  color: #606266;
+}
+
+.price {
+  color: #f56c6c;
+  font-weight: 600;
+}
+
+.empty-songs {
+  padding: 40px 0;
+}
+
+@media (max-width: 768px) {
+  .playlist-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 20px;
+  }
+  
+  .playlist-cover {
+    width: 180px;
+    height: 180px;
+  }
+  
+  .playlist-meta {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .playlist-actions {
+    justify-content: center;
+  }
+  
+  .content-wrapper {
+    padding: 20px 10px;
+  }
 }
 </style>

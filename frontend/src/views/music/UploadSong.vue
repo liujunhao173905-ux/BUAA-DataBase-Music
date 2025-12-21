@@ -2,14 +2,7 @@
   <div class="upload-song-container">
     <el-card class="upload-song-card">
       <template #header>
-        <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <el-button type="default" @click="handleBack">
-              <el-icon><ArrowLeft /></el-icon> 返回
-            </el-button>
-            <h2>上传歌曲</h2>
-          </div>
-        </div>
+        <el-page-header @back="handleBack" content="上传歌曲" title="返回" />
       </template>
 
       <el-form ref="formRef" :model="formData" label-width="100px" class="upload-song-form">

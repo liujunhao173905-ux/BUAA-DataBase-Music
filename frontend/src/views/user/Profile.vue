@@ -1,15 +1,8 @@
 <template>
   <div class="profile-container">
-    <el-card class="profile-card">
+    <el-card class="profile-card" shadow="never">
       <template #header>
-        <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <el-button type="default" @click="handleBack">
-              <el-icon><ArrowLeft /></el-icon> 返回
-            </el-button>
-            <span>个人资料</span>
-          </div>
-        </div>
+        <el-page-header @back="handleBack" content="个人资料" title="返回" />
       </template>
       
       <div v-if="user" class="profile-content">
@@ -281,6 +274,11 @@ const handleLogout = () => {
 
 .profile-card {
   min-height: 500px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }
 
 .card-header {
@@ -304,6 +302,8 @@ const handleLogout = () => {
 
 .user-avatar {
   margin-bottom: 15px;
+  border: 4px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .profile-form {

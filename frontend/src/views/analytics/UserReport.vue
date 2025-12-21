@@ -1,22 +1,26 @@
 <template>
   <div class="user-report">
-    <div class="header">
-      <h2>{{ reportData.user_name }} 的听歌报告</h2>
-      <div class="actions">
-        <el-dropdown @command="handleExport">
-          <el-button type="primary">
-            导出报告 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="excel">导出 Excel</el-dropdown-item>
-              <el-dropdown-item command="pdf">导出 PDF</el-dropdown-item>
-              <el-dropdown-item command="word">导出 Word</el-dropdown-item>
-            </el-dropdown-menu>
+    <el-card shadow="hover" class="report-card">
+      <template #header>
+        <el-page-header @back="handleBack" :content="reportData.user_name + ' 的听歌报告'" title="返回">
+          <template #extra>
+            <div class="actions">
+              <el-dropdown @command="handleExport">
+                <el-button type="primary">
+                  导出报告 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="excel">导出 Excel</el-dropdown-item>
+                    <el-dropdown-item command="pdf">导出 PDF</el-dropdown-item>
+                    <el-dropdown-item command="word">导出 Word</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </template>
-        </el-dropdown>
-      </div>
-    </div>
+        </el-page-header>
+      </template>
 
     <el-row :gutter="20">
       <el-col :span="6">
@@ -75,15 +79,22 @@
         </el-card>
       </el-col>
     </el-row>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { getUserReport, exportUserReport, type UserReportData } from '@/api/analytics'
+
+const router = useRouter()
+const handleBack = () => {
+  router.back()
+}
 
 const reportData = ref<UserReportData>({
   user_name: '',

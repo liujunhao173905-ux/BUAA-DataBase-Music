@@ -1,16 +1,42 @@
 <template>
   <div class="my-songs-container">
-    <el-card class="my-songs-card" :class="{ 'no-border': isEmbedded }">
+    <el-card class="my-songs-card" :class="{ 'no-border': isEmbedded }" shadow="never">
       <template #header>
-        <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 16px;" v-if="!isEmbedded">
-            <el-button type="default" @click="handleBack">
-              <el-icon><ArrowLeft /></el-icon> 返回
-            </el-button>
-            <h2>我的歌曲</h2>
-          </div>
-          <div v-else></div> <!-- Spacer -->
-          <div class="actions">
+        <el-page-header v-if="!isEmbedded" @back="handleBack" content="我的歌曲" title="返回">
+          <template #extra>
+            <div class="actions">
+             <el-dropdown @command="handleExport">
+               <el-button>
+                 导出 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+               </el-button>
+               <template #dropdown>
+                 <el-dropdown-menu>
+                   <el-dropdown-item command="excel">导出 Excel</el-dropdown-item>
+                   <el-dropdown-item command="xml">导出 XML</el-dropdown-item>
+                 </el-dropdown-menu>
+               </template>
+             </el-dropdown>
+             
+             <el-upload
+               class="upload-demo"
+               action="#"
+               :show-file-list="false"
+               :before-upload="handleImport"
+               style="display: inline-block; margin-left: 10px;"
+             >
+               <el-button>导入 Excel/XML</el-button>
+             </el-upload>
+
+             <el-button style="margin-left: 10px;" @click="showExternalDialog = true">
+               从外部导入
+             </el-button>
+
+             <el-button type="primary" @click="handleUploadSong" style="margin-left: 10px;">上传歌曲</el-button>
+           </div>
+          </template>
+        </el-page-header>
+        <div v-else class="card-header" style="display: flex; justify-content: flex-end;">
+           <div class="actions">
              <el-dropdown @command="handleExport">
                <el-button>
                  导出 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
@@ -60,14 +86,16 @@
          </el-table>
       </el-dialog>
 
-      <el-table :data="songs" stripe style="width: 100%" @selection-change="handleSelectionChange">
+      <el-table :data="songs" stripe style="width: 100%" @selection-change="handleSelectionChange" @row-dblclick="handlePlay">
         <el-table-column type="selection" width="55" />
-        <!-- <el-table-column prop="song_id" label="歌曲ID" width="100" /> -->
         <el-table-column prop="song_name" label="歌曲名称" min-width="200">
           <template #default="scope">
-            <div class="song-info">
-              <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
-              <span>{{ scope.row.song_name }}</span>
+            <div class="song-info" @click="handlePlay(scope.row)" style="cursor: pointer;">
+              <div class="cover-wrapper">
+                <el-image v-if="scope.row.song_cover" :src="scope.row.song_cover" class="song-cover" fit="cover" />
+                <div class="hover-play"><el-icon><VideoPlay /></el-icon></div>
+              </div>
+              <span class="song-name">{{ scope.row.song_name }}</span>
             </div>
           </template>
         </el-table-column>
@@ -145,15 +173,18 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, ArrowDown, Delete } from '@element-plus/icons-vue'
+import { ArrowDown, Delete, VideoPlay } from '@element-plus/icons-vue'
 import { getMySongs, deleteSong, exportSongs, importSongs, searchExternalSongs, importExternalSong } from '@/api/music'
 import type { Song } from '@/api/music'
+import { usePlayerStore } from '@/stores/player'
 
 const props = defineProps<{
   isEmbedded?: boolean
 }>()
 
 const router = useRouter()
+const playerStore = usePlayerStore()
+
 const songs = ref<Song[]>([])
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -172,7 +203,7 @@ const statusColor = (st: number) => {
     case 0: return 'warning'
     case 1: return 'success'
     case 2: return 'danger'
-    case 3: return 'info'
+    case 3: return 'danger'
     default: return 'default'
   }
 }
@@ -192,37 +223,23 @@ const handleSelectionChange = (val: Song[]) => {
   multipleSelection.value = val
 }
 
-const handleExport = async (format: 'excel' | 'xml') => {
+const handleExport = async (command: string) => {
   try {
-    const songIds = multipleSelection.value.map(song => song.song_id)
-    if (songIds.length === 0) {
-      // 询问是否导出所有
-      try {
-        await ElMessageBox.confirm('未选择歌曲，是否导出所有歌曲？', '提示', {
-          confirmButtonText: '导出所有',
-          cancelButtonText: '取消',
-          type: 'info'
-        })
-      } catch {
-        return // 用户取消
-      }
+    const ids = multipleSelection.value.map(s => s.song_id)
+    if (ids.length === 0) {
+        ElMessage.warning('请选择要导出的歌曲')
+        return
     }
-    
-    const response = await exportSongs(format, songIds)
-    // Create blob link to download
-    const url = window.URL.createObjectURL(new Blob([response as any]))
-    const link = document.createElement('a')
-    link.href = url
-    const suffix = format === 'excel' ? 'xlsx' : 'xml'
-    const prefix = songIds.length > 0 ? 'selected_songs' : 'all_songs'
-    link.setAttribute('download', `${prefix}_export.${suffix}`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    const res: any = await exportSongs(command as 'excel' | 'xml', ids)
+    // 后端应该返回下载链接或文件流
+    // 如果是文件流，需要处理下载
+    if (res && res.url) {
+        window.open(res.url, '_blank')
+    } else {
+        ElMessage.success('导出任务已开始')
+    }
   } catch (error) {
-    if (error !== 'cancel') {
-        ElMessage.error('导出失败')
-    }
+    ElMessage.error('导出失败')
   }
 }
 
@@ -303,6 +320,12 @@ const fetchSongs = async () => {
   }
 }
 
+// 播放歌曲
+const handlePlay = (song: Song) => {
+  playerStore.setPlaylist(songs.value)
+  playerStore.playSong(song)
+}
+
 // 上传歌曲
 const handleUploadSong = () => {
   router.push('/music/upload-song')
@@ -370,12 +393,28 @@ onMounted(() => {
 }
 
 .my-songs-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }
 
 .my-songs-card.no-border {
   border: none;
   box-shadow: none;
+  background: transparent;
+}
+
+:deep(.el-table) {
+  background-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: rgba(255, 255, 255, 0.5);
+  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.5);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 .card-header {
@@ -387,17 +426,63 @@ onMounted(() => {
 .song-info {
   display: flex;
   align-items: center;
+  padding: 4px 0;
+  transition: transform 0.2s;
+}
+
+.song-info:hover {
+  transform: translateX(4px);
+}
+
+.cover-wrapper {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin-right: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .song-cover {
-  width: 40px;
-  height: 40px;
-  margin-right: 10px;
-  border-radius: 4px;
+  width: 100%;
+  height: 100%;
+  display: block;
+  transition: transform 0.3s;
+}
+
+.cover-wrapper:hover .song-cover {
+  transform: scale(1.1);
+}
+
+.hover-play {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  color: #fff;
+  font-size: 24px;
+}
+
+.cover-wrapper:hover .hover-play {
+  opacity: 1;
+}
+
+.song-name {
+  font-weight: 600;
+  color: #303133;
+  font-size: 15px;
 }
 
 .pagination-container {
-  margin-top: 20px;
+  margin-top: 24px;
   display: flex;
   justify-content: center;
 }

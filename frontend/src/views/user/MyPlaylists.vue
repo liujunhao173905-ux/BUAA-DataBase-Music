@@ -1,16 +1,14 @@
 <template>
   <div class="my-playlists-container">
-    <el-card class="my-playlists-card" :class="{ 'no-border': isEmbedded }">
+    <el-card class="my-playlists-card" :class="{ 'no-border': isEmbedded }" shadow="never">
       <template #header>
-        <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 16px;" v-if="!isEmbedded">
-            <el-button type="default" @click="handleBack" circle>
-              <el-icon><ArrowLeft /></el-icon>
-            </el-button>
-            <h2>我的歌单</h2>
-          </div>
-          <div v-else></div>
-          <el-button type="primary" @click="handleCreatePlaylist" :icon="Plus" round>创建歌单</el-button>
+        <el-page-header v-if="!isEmbedded" @back="handleBack" content="我的歌单" title="返回">
+           <template #extra>
+             <el-button type="primary" @click="handleCreatePlaylist" :icon="Plus" round>创建歌单</el-button>
+           </template>
+        </el-page-header>
+        <div v-else class="card-header" style="display: flex; justify-content: flex-end;">
+            <el-button type="primary" @click="handleCreatePlaylist" :icon="Plus" round>创建歌单</el-button>
         </div>
       </template>
 
@@ -102,7 +100,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Plus, View, Edit, Delete } from '@element-plus/icons-vue'
+import { Plus, View, Delete } from '@element-plus/icons-vue'
 import { getMyPlaylists, deletePlaylist } from '@/api/music'
 import type { Playlist } from '@/api/music'
 
@@ -229,7 +227,28 @@ onMounted(() => {
 }
 
 .my-playlists-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+.my-playlists-card.no-border {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+:deep(.el-table) {
+  background-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: rgba(255, 255, 255, 0.5);
+  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.5);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 .card-header {
@@ -241,22 +260,33 @@ onMounted(() => {
 .playlist-info {
   display: flex;
   align-items: center;
+  padding: 4px 0;
+  transition: transform 0.2s;
+}
+
+.playlist-info:hover {
+  transform: translateX(4px);
 }
 
 .cover-wrapper {
   position: relative;
-  width: 40px;
-  height: 40px;
-  margin-right: 10px;
-  border-radius: 4px;
+  width: 48px;
+  height: 48px;
+  margin-right: 16px;
+  border-radius: 8px;
   overflow: hidden;
-  flex-shrink: 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .playlist-cover {
   width: 100%;
   height: 100%;
   display: block;
+  transition: transform 0.3s;
+}
+
+.cover-wrapper:hover .playlist-cover {
+  transform: scale(1.1);
 }
 
 .hover-play {
@@ -265,44 +295,36 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.3);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s;
-  color: white;
+  transition: opacity 0.3s;
+  color: #fff;
+  font-size: 24px;
 }
 
-.playlist-info:hover .hover-play {
+.cover-wrapper:hover .hover-play {
   opacity: 1;
 }
 
 .playlist-name {
-  font-weight: 500;
+  font-weight: 600;
   color: #303133;
+  font-size: 15px;
 }
 
 .text-ellipsis {
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #606266;
 }
 
 .pagination-container {
-  margin-top: 20px;
+  margin-top: 24px;
   display: flex;
   justify-content: center;
-}
-
-.no-border {
-  border: none;
-  box-shadow: none;
-}
-
-.embedded-actions {
-  margin-bottom: 15px;
-  display: flex;
-  justify-content: flex-end;
 }
 </style>
