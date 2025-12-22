@@ -142,8 +142,7 @@ class SongImportView(APIView):
                     duration = row[2]
                     price = row[3]
                     
-                
-                        # 创建新歌曲
+                    # 创建新歌曲
                     if user.user_type == 1:
                         Song.objects.create(
                             song_name=song_name,
@@ -240,7 +239,6 @@ class ExternalMusicSearchView(APIView):
             return Response([])
             
         # 模拟外部API数据
-        # 在实际项目中，这里会调用 Spotify/Apple Music/Netease API
         mock_results = [
             {
                 'external_id': f'ext_{i}',
@@ -272,18 +270,13 @@ class ExternalMusicImportView(APIView):
             return Response({'error': '歌曲信息不完整'}, status=status.HTTP_400_BAD_REQUEST)
             
         # 创建新歌曲
-        # 注意：这里我们没有实际的音频文件，所以创建一个占位符或需要后续上传
-        # 为了演示，我们假设这是一个元数据导入
         try:
             song = Song.objects.create(
                 song_name=name,
                 song_singer=request.user,
                 song_duration=duration,
                 song_price=0.00,
-                song_status=0, # 导入后默认为未上架，需审核或上传文件
-                # song_file 需要一个默认值，或者允许为空（如果模型允许）
-                # 由于模型FileField默认必须有值，这里我们可能需要一个默认文件，或者修改模型
-                # 暂时先用一个空字符串或占位路径，这可能会导致文件操作错误，但仅做演示
+                song_status=0, 
                 song_file='songs/placeholder.mp3' 
             )
             return Response({'message': '导入成功', 'song_id': song.song_id}, status=status.HTTP_201_CREATED)
@@ -385,26 +378,26 @@ class SongViewSet(viewsets.ModelViewSet):
     
     def get_object(self):
         """获取单个对象，确保歌手可以删除自己的任何歌曲"""
-        # 对于删除操作，绕过get_queryset的过滤，确保能找到自己的歌曲
         if self.action == 'destroy':
             try:
                 song_id = self.kwargs.get('song_id') or self.kwargs.get('pk')
                 if self.request.user.user_type == 2:
-                    # 管理员可以获取任何歌曲
                     return Song.objects.get(song_id=song_id)
                 else:
-                    # 普通用户只能获取自己的歌曲
                     return Song.objects.get(song_id=song_id, song_singer=self.request.user)
             except Song.DoesNotExist:
                 from rest_framework.exceptions import NotFound
                 raise NotFound(detail='歌曲不存在或无权访问')
         
-        # 其他操作使用默认的get_object方法
         return super().get_object()
     
     def perform_create(self, serializer):
         """创建歌曲"""
-        serializer.save()
+        save_kwargs = {}
+        if not serializer.validated_data.get('song_cover'):
+            save_kwargs['song_cover'] = 'covers/default.png'
+        
+        serializer.save(**save_kwargs)
     
     def perform_update(self, serializer):
         """更新歌曲（需要重新审核）"""
@@ -465,10 +458,6 @@ class SongViewSet(viewsets.ModelViewSet):
         if BuySong.objects.filter(user=request.user, song=song).exists():
             return Response({'error': '已经购买过该歌曲'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # 免费歌曲不需要购买
-        # if song.song_price == 0:
-        #     return Response({'error': '该歌曲是免费的，无需购买'}, status=status.HTTP_400_BAD_REQUEST)
-        
         # 创建购买记录
         buy_song = BuySong.objects.create(
             user=request.user,
@@ -484,12 +473,10 @@ class SongViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def starred(self, request):
         """获取当前用户收藏的歌曲"""
-        # 获取用户收藏的歌曲，按收藏时间倒序
         star_songs = StarSong.objects.filter(user=request.user)\
             .select_related('song', 'song__song_singer')\
             .order_by('-star_time')
         
-        # 支持分页
         page = self.paginate_queryset(star_songs)
         if page is not None:
             songs = [item.song for item in page]
@@ -503,24 +490,19 @@ class SongViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def bought(self, request):
         """获取当前用户购买的歌曲"""
-        # 1. 当前用户的购买记录，按最新排序
         buy_qs = BuySong.objects.filter(user=request.user) \
             .select_related('song') \
             .order_by('-buy_song_id')
 
-        # 2. 构造  song_id -> buy_price  映射
         buy_map: dict[int, str] = {
             buy.song_id: str(buy.buy_price) for buy in buy_qs
         }
 
-        # 3. 只取歌曲实例（去重，保留最新一条即可）
         songs = [buy.song for buy in buy_qs if buy.song.song_status == 1]
 
-        # 4. 分页
         page = self.paginate_queryset(songs)
         if page is not None:
             serializer = self.get_serializer(page, many=True, context={'buy_map': buy_map})
-            print(serializer.data)
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(songs, many=True, context={'buy_map': buy_map})
@@ -528,7 +510,6 @@ class SongViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
     def recommend(self, request):
-
         """推荐歌曲（按收藏量排序）"""
         songs = Song.objects.filter(song_status=1).annotate(
             star_count=Count('starred_by')
@@ -547,14 +528,12 @@ class SongViewSet(viewsets.ModelViewSet):
             )
         
         songs = Song.objects.filter(song_singer=request.user)
-        # 添加分页支持
         page = self.paginate_queryset(songs)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(songs, many=True)
         return Response(serializer.data)
-    
 
 
 class SongStatisticsView(APIView):
@@ -570,7 +549,6 @@ class SongStatisticsView(APIView):
             )
         
         if song_id:
-            # 单个歌曲统计
             try:
                 song = Song.objects.get(song_id=song_id, song_singer=request.user)
                 star_count = song.starred_by.count()
@@ -589,7 +567,6 @@ class SongStatisticsView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
         else:
-            # 所有歌曲统计
             songs = Song.objects.filter(song_singer=request.user).annotate(
                 star_count=Count('starred_by'),
                 buy_count=Count('bought_by')
@@ -616,6 +593,3 @@ class SongStatisticsView(APIView):
                     for song in songs
                 ]
             })
-
-
-

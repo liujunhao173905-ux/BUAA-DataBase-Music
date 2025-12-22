@@ -5,6 +5,7 @@ Django settings for music platform project.
 from pathlib import Path
 from datetime import timedelta
 import os
+import shutil  # 新增：用于文件复制
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -101,14 +102,42 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files - 媒体文件存储路径
+# =========================================================
+# Media files - 媒体文件存储路径及初始化逻辑
+# =========================================================
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# 创建媒体文件目录
+# 1. 确保基础媒体目录存在
 os.makedirs(MEDIA_ROOT / 'songs', exist_ok=True)
 os.makedirs(MEDIA_ROOT / 'covers', exist_ok=True)
 os.makedirs(MEDIA_ROOT / 'avatars', exist_ok=True)
+
+# 2. 系统启动时检测并复制默认文件
+# 定义源文件位置 (假设在项目根目录的 assets/defaults 下)
+DEFAULT_ASSETS_DIR = BASE_DIR / 'assets' / 'defaults'
+
+# 定义需要检查和复制的文件映射: (源文件名, 目标子目录, 目标文件名)
+FILES_TO_CHECK = [
+    ('default_avatar.png', 'avatars', 'default.png'),
+    ('default_song_cover.png', 'covers', 'default.png'),
+    ('default_playlist_cover.png', 'covers', 'default.png'),
+]
+
+# 只有当源目录存在时才执行检查
+if DEFAULT_ASSETS_DIR.exists():
+    for source_name, target_folder, target_name in FILES_TO_CHECK:
+        source_file = DEFAULT_ASSETS_DIR / source_name
+        target_file = MEDIA_ROOT / target_folder / target_name
+        
+        # 如果目标文件不存在，且源文件存在，则复制
+        if not target_file.exists() and source_file.exists():
+            try:
+                shutil.copy2(source_file, target_file)
+                print(f" >>> [System Init] 已自动生成默认文件: {target_file}")
+            except Exception as e:
+                print(f" !!! [System Init] 默认文件复制失败: {e}")
+# =========================================================
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -144,4 +173,3 @@ SIMPLE_JWT = {
 # CORS配置（开发环境允许所有来源）
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-

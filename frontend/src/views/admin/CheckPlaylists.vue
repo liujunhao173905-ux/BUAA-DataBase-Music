@@ -32,7 +32,7 @@
           >
             <div class="playlist-info">
               <div class="playlist-cover">
-                <img :src="playlist.check_playlist_cover || '/default-playlist-cover.png'" alt="歌单封面">
+                <img :src="playlist.check_playlist_detail.playlist_cover || '/default-playlist-cover.png'" alt="歌单封面">
               </div>
               <div class="playlist-details">
                 <h3>{{ playlist.check_playlist_name }}</h3>

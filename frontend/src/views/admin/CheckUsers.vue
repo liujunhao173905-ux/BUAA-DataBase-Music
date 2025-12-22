@@ -32,7 +32,7 @@
           >
             <div class="user-info">
               <div class="user-avatar">
-                <img :src="user.check_user_avatar || '/default-avatar.png'" alt="用户头像">
+                <img :src="user.check_user_detail.user_avatar || '/default-avatar.png'" alt="用户头像">
               </div>
               <div class="user-details">
                 <h3>{{ user.check_user_name }}</h3>

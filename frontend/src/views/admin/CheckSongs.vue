@@ -32,7 +32,7 @@
           >
             <div class="song-info">
               <div class="song-cover">
-                <img :src="song.check_song_cover || '/default-song-cover.png'" alt="歌曲封面">
+                <img :src="song.check_song_detail.song_cover || '/default-song-cover.png'" alt="歌曲封面">
               </div>
               <div class="song-details">
                 <h3>{{ song.check_song_name }}</h3>
