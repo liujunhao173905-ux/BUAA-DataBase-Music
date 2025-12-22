@@ -36,7 +36,7 @@
               </div>
               <div class="song-details">
                 <h3>{{ song.check_song_name }}</h3>
-                <p class="singer">{{ song.check_song_detail.song_singer?.user_name || '未知歌手' }}</p>
+                <p class="singer">{{ song.check_song_detail.song_singer_name || '未知歌手' }}</p>
                 <p class="duration">{{ formatDuration(song.check_song_duration) }}</p>
                 <p class="price">¥{{ song.check_song_price.toFixed(2) }}</p>
               </div>

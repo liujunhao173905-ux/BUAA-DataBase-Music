@@ -1,6 +1,8 @@
 """
 音乐视图
 """
+import os
+from config import settings
 from rest_framework import status, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -13,7 +15,7 @@ from apps.users.models import LoginLog
 from apps.audit.models import CheckSongLog
 import openpyxl
 import xml.etree.ElementTree as ET
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from io import BytesIO
 
 
@@ -422,6 +424,50 @@ class SongViewSet(viewsets.ModelViewSet):
         else:
             raise permissions.PermissionDenied('无权删除此歌曲')
     
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def download(self, request, pk=None):
+        """
+        下载歌曲文件
+        """
+        try:
+            # 1. 获取歌曲对象
+            song = self.get_object()
+            
+            # 2. 获取文件对象
+            file_field = song.song_file
+            
+            if not file_field:
+                return Response({'error': '该歌曲未上传文件'}, status=status.HTTP_404_NOT_FOUND)
+
+            # 3. 获取文件在系统中的绝对路径
+            # 如果是 FileField，.path 属性就是绝对路径
+            # 如果仅仅是存了相对路径字符串，需要拼接 MEDIA_ROOT
+            if hasattr(file_field, 'path'):
+                file_path = file_field.path
+            else:
+                # 假设数据库存的是 "songs/filename.mp3"
+                file_path = os.path.join(settings.MEDIA_ROOT, str(file_field))
+
+            # 4. 检查文件是否存在于磁盘
+            if not os.path.exists(file_path):
+                return Response({'error': '服务器上找不到该音频文件'}, status=status.HTTP_404_NOT_FOUND)
+
+            # 6. 打开文件并创建 FileResponse (自动处理流式传输和关闭文件)
+            file_handle = open(file_path, 'rb')
+            response = FileResponse(file_handle, content_type='application/mpeg')
+
+            # 7. 设置下载文件名
+            download_filename = f"{song.song_name}.mp3"
+            
+            # 8. 设置 Content-Disposition 头，强制浏览器下载而非播放
+            # escape_uri_path 解决中文文件名在某些浏览器乱码或无法下载的问题
+            response['Content-Disposition'] = f'attachment; filename="{download_filename}"'
+            
+            return response
+
+        except Exception as e:
+            return Response({'error': f'下载出错: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def star(self, request, pk=None):
         """收藏歌曲"""

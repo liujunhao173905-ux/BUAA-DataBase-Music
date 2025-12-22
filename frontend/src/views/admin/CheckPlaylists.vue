@@ -36,7 +36,7 @@
               </div>
               <div class="playlist-details">
                 <h3>{{ playlist.check_playlist_name }}</h3>
-                <p class="creator">{{ playlist.check_playlist_detail.playlist_creator?.user_name || '未知创建者' }}</p>
+                <p class="creator">{{ playlist.check_playlist_detail.playlist_creator_name || '未知创建者' }}</p>
                 <p class="song-count">{{ playlist.check_playlist_detail.songs.length }}首歌曲</p>
                 <p class="intro" v-if="playlist.check_playlist_intro">{{ playlist.check_playlist_intro }}</p>
               </div>

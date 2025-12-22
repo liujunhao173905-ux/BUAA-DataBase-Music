@@ -36,9 +36,9 @@
                导入说明
              </el-button>
 
-             <el-button style="margin-left: 10px;" @click="showExternalDialog = true">
+             <!-- <el-button style="margin-left: 10px;" @click="showExternalDialog = true">
                从外部导入
-             </el-button>
+             </el-button> -->
 
              <el-button type="primary" @click="handleUploadSong" style="margin-left: 10px;">上传歌曲</el-button>
            </div>
@@ -77,9 +77,9 @@
                导入说明
              </el-button>
 
-             <el-button style="margin-left: 10px;" @click="showExternalDialog = true">
+             <!-- <el-button style="margin-left: 10px;" @click="showExternalDialog = true">
                从外部导入
-             </el-button>
+             </el-button> -->
 
              <el-button type="primary" @click="handleUploadSong" style="margin-left: 10px;">上传歌曲</el-button>
            </div>
@@ -173,31 +173,72 @@
 
     </el-card>
 
-    <el-dialog v-model="showImportInstructions" title="批量导入说明" width="600px">
-      <div class="import-instructions">
-        <p>请选择一个包含以下内容的文件夹：</p>
+    <el-dialog 
+      v-model="showImportInstructions" 
+      title="批量导入说明" 
+      width="600px"
+      class="import-dialog"
+    >
+      <div class="markdown-body">
+        <p>请选择一个包含以下内容的 <strong>文件夹</strong>：</p>
+        
         <ol>
           <li>
-            <strong>歌曲详情文件</strong>：必须命名为 <code>歌曲详情.xlsx</code> 或 <code>歌曲详情.xml</code>。
+            <strong>歌曲详情文件</strong>：必须命名为 <code class="inline-code">歌曲详情.xlsx</code> 或 <code class="inline-code">歌曲详情.xml</code>
           </li>
           <li>
-            <strong>资源文件</strong>：歌曲的音频文件（mp3/flac等）和封面图片（jpg/png等）。
+            <strong>歌曲音频文件</strong>：MP3、WAV、OGG 等格式的文件
+          </li>
+          <li>
+            <strong>歌曲封面文件（可选）</strong>：JPG、PNG 等格式的文件
           </li>
         </ol>
-        <p><strong>表格/XML 格式要求：</strong></p>
-        <ul>
-          <li><code>song_name</code> / <code>歌曲名称</code>：歌曲标题（必填）</li>
-          <li><code>song_singer_name</code> / <code>歌手</code>：歌手名称（可选）</li>
-          <li><code>song_price</code> / <code>价格</code>：价格（可选，默认为0）</li>
-          <li><code>song_file</code> / <code>录音文件</code>：音频文件名（包含扩展名）。若为空或未找到文件，系统将自动使用占位文件并提示。</li>
-          <li><code>song_cover</code> / <code>封面文件</code>：封面文件名（包含扩展名）。若为空或未找到文件，系统将自动使用占位图片并提示。</li>
-        </ul>
+
+        <p>如果选择 xlsx 文件作为歌曲详情文件，文件示例如下（不设置封面则 song_cover 留空）：</p>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>song_name</th>
+                <th>song_price</th>
+                <th>song_file</th>
+                <th>song_cover</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>歌曲名1</td>
+                <td>歌曲价格1</td>
+                <td>歌曲文件1.mp3</td>
+                <td>歌曲封面1.png</td>
+              </tr>
+              <tr>
+                <td>歌曲名2</td>
+                <td>歌曲价格2</td>
+                <td>歌曲文件2.mp3</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>如果选择 xml 文件作为歌曲详情文件，文件示例如下（不设置封面则没有 <code>&lt;song_cover&gt;</code> 标签）：</p>
+
+        <pre><code class="language-xml">&lt;data&gt;
+  &lt;song&gt;
+    &lt;song_name&gt;歌曲名1&lt;/song_name&gt;
+    &lt;song_price&gt;歌曲价格1&lt;/song_price&gt;
+    &lt;song_file&gt;歌曲文件1.mp3&lt;/song_file&gt;
+    &lt;song_cover&gt;歌曲封面1.png&lt;/song_cover&gt;
+  &lt;/song&gt;
+  &lt;song&gt;
+    &lt;song_name&gt;歌曲名2&lt;/song_name&gt;
+    &lt;song_price&gt;歌曲价格2&lt;/song_price&gt;
+    &lt;song_file&gt;歌曲文件2.mp3&lt;/song_file&gt;
+  &lt;/song&gt;
+&lt;/data&gt;</code></pre>
       </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button type="primary" @click="showImportInstructions = false">知道了</el-button>
-        </span>
-      </template>
     </el-dialog>
 
     <el-dialog v-model="showExternalDialog" title="从外部API导入" width="600px">
@@ -246,6 +287,25 @@ const multipleSelection = ref<Song[]>([])
 // 批量导入相关
 const folderInput = ref<HTMLInputElement | null>(null)
 const showImportInstructions = ref(false)
+
+async function getAudioDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio()
+    const url   = URL.createObjectURL(file)
+
+    audio.addEventListener('loadedmetadata', () => {
+      resolve(Math.round(audio.duration)) // 仅秒数
+      URL.revokeObjectURL(url)
+    })
+    audio.addEventListener('error', () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('无法读取音频时长'))
+    })
+
+    audio.src = url
+    audio.load()
+  })
+}
 
 const triggerFolderImport = async () => {
   try {
@@ -366,7 +426,6 @@ const processFiles = async (files: File[]) => {
     for (const entry of songEntries) {
       // 字段映射兼容
       const name = entry['song_name'] || entry['歌曲名称']
-      const singer = entry['song_singer_name'] || entry['歌手']
       const price = entry['song_price'] || entry['价格']
       const fileName = entry['song_file'] || entry['录音文件']
       const coverName = entry['song_cover'] || entry['封面文件']
@@ -378,29 +437,25 @@ const processFiles = async (files: File[]) => {
 
       const formData = new FormData()
       formData.append('song_name', name)
-      if (singer) formData.append('song_singer_name', singer)
       formData.append('song_price', price || '0')
 
       // 处理音频文件
+      let finalDuration = 0
+
       if (fileName && resourceFiles.has(fileName)) {
-        formData.append('song_file', resourceFiles.get(fileName)!)
-      } else {
-        // 占位逻辑
-        const placeholderBlob = new Blob(['Placeholder Audio'], { type: 'audio/mp3' })
-        const placeholderFile = new File([placeholderBlob], 'placeholder.mp3', { type: 'audio/mp3' })
-        formData.append('song_file', placeholderFile)
-        warningMessages.push(`歌曲 "${name}"：未找到音频文件 "${fileName || '空'}"，已使用占位文件。`)
+        const audioFile = resourceFiles.get(fileName)!
+        formData.append('song_file', audioFile)
+        try {
+          finalDuration = await getAudioDuration(audioFile)
+        } catch (e) {
+          finalDuration = 0
+        }
+        formData.append('song_duration', finalDuration.toString())
       }
 
       // 处理封面文件
       if (coverName && resourceFiles.has(coverName)) {
         formData.append('song_cover', resourceFiles.get(coverName)!)
-      } else {
-         // 占位逻辑
-        const placeholderBlob = new Blob(['Placeholder Image'], { type: 'image/jpeg' })
-        const placeholderFile = new File([placeholderBlob], 'placeholder.jpg', { type: 'image/jpeg' })
-        formData.append('song_cover', placeholderFile)
-        warningMessages.push(`歌曲 "${name}"：未找到封面文件 "${coverName || '空'}"，已使用占位图片。`)
       }
 
       try {
@@ -777,5 +832,114 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   flex-shrink: 0;
+}
+
+:deep(.import-dialog) {
+  max-height: 495px;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.import-dialog .el-dialog__body) {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 20px; 
+}
+
+.markdown-body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #24292e;
+  background-color: #fff;
+  padding: 10px;
+}
+
+.markdown-body p {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+}
+
+/* 列表样式 */
+.markdown-body ol {
+  padding-left: 2em;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body li {
+  margin-top: 0.25em;
+}
+
+/* 内联代码样式 (文件名) */
+.markdown-body .inline-code,
+.markdown-body code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: #f6f8fa; /* 浅灰背景 */
+  border-radius: 3px;
+  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  color: #d63384; /* 醒目的颜色 */
+}
+
+/* 表格样式 */
+.markdown-body .table-wrapper {
+  overflow: auto;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body table {
+  border-spacing: 0;
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 100%;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+  padding: 6px 13px;
+  border: 1px solid #dfe2e5;
+  text-align: center; /* 居中对齐 */
+}
+
+.markdown-body table th {
+  font-weight: 600;
+  background-color: #f6f8fa;
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background-color: #f6f8fa; /* 斑马纹 */
+}
+
+/* 代码块样式 */
+.markdown-body pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 100%;
+  line-height: 1.45;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  border: 1px solid #eaecef;
+}
+
+.markdown-body pre code {
+  background-color: transparent;
+  padding: 0;
+  margin: 0;
+  color: #24292e;
+  word-break: normal;
+  white-space: pre;
+  border: 0;
+  display: inline;
+  overflow: visible;
+  line-height: inherit;
+  word-wrap: normal;
 }
 </style>

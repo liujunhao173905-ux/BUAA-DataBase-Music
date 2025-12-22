@@ -174,6 +174,13 @@ export const deleteSong = (songId: number) => {
   return request.delete(`/music/songs/${songId}/`)
 }
 
+// 下载歌曲
+export const downloadSong = (song: Song) => {
+  return request.get(`/music/songs/${song.song_id}/download/`, {
+    responseType: 'blob'
+  })
+}
+
 // 获取歌单列表
 export const getPlaylists = (params?: any) => {
   return request.get<{ count: number; next: string | null; previous: string | null; results: Playlist[] }>('/playlists/', { params }) as unknown as { count: number; next: string | null; previous: string | null; results: Playlist[] }

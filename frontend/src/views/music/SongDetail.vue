@@ -57,10 +57,9 @@
                     round
                   >
                     <el-icon class="btn-icon">
-                      <VideoPause v-if="isPlayingThisSong" />
-                      <VideoPlay v-else />
+                      <VideoPlay/>
                     </el-icon>
-                    {{ isPlayingThisSong ? '暂停播放' : '立即播放' }}
+                    {{ '立即播放' }}
                   </el-button>
 
                   <el-button

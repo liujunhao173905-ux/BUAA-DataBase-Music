@@ -78,7 +78,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, VideoPlay, Download } from '@element-plus/icons-vue'
-import { getMyBoughtSongs, type Song } from '@/api/music'
+import { downloadSong, getMyBoughtSongs, type Song } from '@/api/music'
 import { usePlayerStore } from '@/stores/player'
 
 const props = defineProps<{
@@ -126,11 +126,24 @@ const handlePlayAll = () => {
   }
 }
 
-const handleDownload = (song: Song) => {
-  if (song.song_file) {
-    window.open(song.song_file, '_blank')
-  } else {
-    ElMessage.warning('暂无下载链接')
+const handleDownload = async (song: Song) => {
+  try {
+    const res = await downloadSong(song)
+    // res is Blob
+    const blob = new Blob([res as any], { 
+      type: 'mp3'
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${song.song_name}.mp3`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('下载成功')
+  } catch (error) {
+    ElMessage.error('下载失败')
   }
 }
 

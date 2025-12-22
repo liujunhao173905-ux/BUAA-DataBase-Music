@@ -179,8 +179,8 @@ const getRecordName = (record: any) => {
 
 const getSubmitter = (record: any) => {
   switch (record.type) {
-    case 'song': return `提交者: ${record.check_song_detail.song_singer?.user_name || '未知'}`
-    case 'playlist': return `提交者: ${record.check_playlist_detail.playlist_creator?.user_name || '未知'}`
+    case 'song': return `提交者: ${record.check_song_detail.song_singer_name || '未知'}`
+    case 'playlist': return `提交者: ${record.check_playlist_detail.playlist_creator_name || '未知'}`
     case 'user': return `申请人: ${record.check_user_name}`
     default: return ''
   }
