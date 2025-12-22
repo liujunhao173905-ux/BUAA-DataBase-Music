@@ -17,15 +17,24 @@
                </template>
              </el-dropdown>
              
-             <el-upload
-               class="upload-demo"
-               action="#"
-               :show-file-list="false"
-               :before-upload="handleImport"
-               style="display: inline-block; margin-left: 10px;"
-             >
-               <el-button>导入 Excel/XML</el-button>
-             </el-upload>
+             <!-- 隐藏的文件夹输入框 -->
+             <input
+               type="file"
+               ref="folderInput"
+               style="display: none"
+               webkitdirectory
+               directory
+               multiple
+               @change="handleFolderImport"
+             />
+
+             <el-button @click="triggerFolderImport" style="margin-left: 10px;">
+               批量导入
+             </el-button>
+             
+             <el-button @click="showImportInstructions = true" style="margin-left: 10px;" type="info" plain>
+               导入说明
+             </el-button>
 
              <el-button style="margin-left: 10px;" @click="showExternalDialog = true">
                从外部导入
@@ -49,15 +58,24 @@
                </template>
              </el-dropdown>
              
-             <el-upload
-               class="upload-demo"
-               action="#"
-               :show-file-list="false"
-               :before-upload="handleImport"
-               style="display: inline-block; margin-left: 10px;"
-             >
-               <el-button>导入 Excel/XML</el-button>
-             </el-upload>
+             <!-- 隐藏的文件夹输入框 -->
+             <input
+               type="file"
+               ref="folderInput"
+               style="display: none"
+               webkitdirectory
+               directory
+               multiple
+               @change="handleFolderImport"
+             />
+
+             <el-button @click="triggerFolderImport" style="margin-left: 10px;">
+               批量导入
+             </el-button>
+             
+             <el-button @click="showImportInstructions = true" style="margin-left: 10px;" type="info" plain>
+               导入说明
+             </el-button>
 
              <el-button style="margin-left: 10px;" @click="showExternalDialog = true">
                从外部导入
@@ -67,23 +85,6 @@
            </div>
         </div>
       </template>
-
-      <el-dialog v-model="showExternalDialog" title="从外部API导入" width="600px">
-         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <el-input v-model="externalKeyword" placeholder="输入歌名或歌手" @keyup.enter="handleExternalSearch" />
-            <el-button type="primary" @click="handleExternalSearch" :loading="externalLoading">搜索</el-button>
-         </div>
-         
-         <el-table :data="externalResults" v-loading="externalLoading" height="300" style="width: 100%">
-            <el-table-column property="name" label="歌名" />
-            <el-table-column property="singer" label="歌手" />
-            <el-table-column label="操作" width="100">
-               <template #default="scope">
-                  <el-button type="success" size="small" @click="importExternal(scope.row)">导入</el-button>
-               </template>
-            </el-table-column>
-         </el-table>
-      </el-dialog>
 
       <div v-if="songs.length > 0" class="song-list">
         <div class="table-wrapper">
@@ -118,7 +119,7 @@
             <el-table-column prop="song_status" label="状态" width="120" align="center">
               <template #default="scope">
                 <el-tag
-                  :type=statusColor(scope.row.song_status)>
+                  :type="statusColor(scope.row.song_status)">
                   {{ statusText(scope.row.song_status) }}
                 </el-tag>
               </template>
@@ -171,6 +172,50 @@
       <el-empty v-else description="暂无歌曲" style="flex: 1; display: flex; justify-content: center; align-items: center;" />
 
     </el-card>
+
+    <el-dialog v-model="showImportInstructions" title="批量导入说明" width="600px">
+      <div class="import-instructions">
+        <p>请选择一个包含以下内容的文件夹：</p>
+        <ol>
+          <li>
+            <strong>歌曲详情文件</strong>：必须命名为 <code>歌曲详情.xlsx</code> 或 <code>歌曲详情.xml</code>。
+          </li>
+          <li>
+            <strong>资源文件</strong>：歌曲的音频文件（mp3/flac等）和封面图片（jpg/png等）。
+          </li>
+        </ol>
+        <p><strong>表格/XML 格式要求：</strong></p>
+        <ul>
+          <li><code>song_name</code> / <code>歌曲名称</code>：歌曲标题（必填）</li>
+          <li><code>song_singer_name</code> / <code>歌手</code>：歌手名称（可选）</li>
+          <li><code>song_price</code> / <code>价格</code>：价格（可选，默认为0）</li>
+          <li><code>song_file</code> / <code>录音文件</code>：音频文件名（包含扩展名）。若为空或未找到文件，系统将自动使用占位文件并提示。</li>
+          <li><code>song_cover</code> / <code>封面文件</code>：封面文件名（包含扩展名）。若为空或未找到文件，系统将自动使用占位图片并提示。</li>
+        </ul>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button type="primary" @click="showImportInstructions = false">知道了</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="showExternalDialog" title="从外部API导入" width="600px">
+       <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+          <el-input v-model="externalKeyword" placeholder="输入歌名或歌手" @keyup.enter="handleExternalSearch" />
+          <el-button type="primary" @click="handleExternalSearch" :loading="externalLoading">搜索</el-button>
+       </div>
+       
+       <el-table :data="externalResults" v-loading="externalLoading" height="300" style="width: 100%">
+          <el-table-column property="name" label="歌名" />
+          <el-table-column property="singer" label="歌手" />
+          <el-table-column label="操作" width="100">
+             <template #default="scope">
+                <el-button type="success" size="small" @click="importExternal(scope.row)">导入</el-button>
+             </template>
+          </el-table-column>
+       </el-table>
+    </el-dialog>
   </div>
 </template>
 
@@ -179,9 +224,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown, Delete, VideoPlay } from '@element-plus/icons-vue'
-import { getMySongs, deleteSong, exportSongs, importSongs, searchExternalSongs, importExternalSong } from '@/api/music'
+import { getMySongs, deleteSong, exportSongs, importSongs, searchExternalSongs, importExternalSong, uploadSong } from '@/api/music'
 import type { Song } from '@/api/music'
 import { usePlayerStore } from '@/stores/player'
+import * as XLSX from 'xlsx'
 
 const props = defineProps<{
   isEmbedded?: boolean
@@ -196,6 +242,204 @@ const pageSize = ref(10)
 const total = ref(0)
 const loading = ref(false)
 const multipleSelection = ref<Song[]>([])
+
+// 批量导入相关
+const folderInput = ref<HTMLInputElement | null>(null)
+const showImportInstructions = ref(false)
+
+const triggerFolderImport = async () => {
+  try {
+    // 尝试使用现代 API
+    if ('showDirectoryPicker' in window) {
+      try {
+        const handle = await (window as any).showDirectoryPicker()
+        const files: File[] = []
+        
+        // 递归遍历函数
+        async function scanEntry(entry: any) {
+           if (entry.kind === 'file') {
+              const file = await entry.getFile()
+              files.push(file)
+           } else if (entry.kind === 'directory') {
+              for await (const child of entry.values()) {
+                 await scanEntry(child)
+              }
+           }
+        }
+        
+        await scanEntry(handle)
+        processFiles(files)
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return // 用户取消
+        console.error(err)
+        ElMessage.error('无法打开文件夹选择器')
+      }
+    } else {
+      // 降级方案
+      folderInput.value?.click()
+    }
+  } catch (err) {
+    console.error(err)
+    folderInput.value?.click()
+  }
+}
+
+const handleFolderImport = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const files = target.files
+  if (files) {
+    processFiles(Array.from(files))
+    target.value = '' // 清空 input
+  }
+}
+
+const processFiles = async (files: File[]) => {
+  if (!files || files.length === 0) {
+    ElMessageBox.alert('所选文件夹为空或未检测到文件，请检查文件夹内容。', '提示', {
+      confirmButtonText: '确定',
+      type: 'warning'
+    })
+    return
+  }
+
+  // 1. 寻找元数据文件
+  let metadataFile: File | null = null
+  const resourceFiles = new Map<string, File>()
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    if (file.name === '歌曲详情.xlsx' || file.name === '歌曲详情.xls' || file.name === '歌曲详情.xml') {
+      metadataFile = file
+    } else {
+      resourceFiles.set(file.name, file)
+    }
+  }
+
+  if (!metadataFile) {
+    ElMessageBox.alert('在所选文件夹中未找到“歌曲详情”文件（.xlsx, .xls 或 .xml），请检查文件夹内容。', '提示', {
+      confirmButtonText: '确定',
+      type: 'warning'
+    })
+    return
+  }
+
+  try {
+    loading.value = true
+    let songEntries: any[] = []
+
+    // 2. 解析元数据
+    if (metadataFile.name.endsWith('.xml')) {
+      const text = await metadataFile.text()
+      const parser = new DOMParser()
+      const xmlDoc = parser.parseFromString(text, 'text/xml')
+      const items = xmlDoc.getElementsByTagName('item') // 假设 XML 结构为 <root><item>...</item></root>
+      // 如果没有 item 标签，尝试 row 或者 song
+      const rows = items.length > 0 ? items : (xmlDoc.getElementsByTagName('row').length > 0 ? xmlDoc.getElementsByTagName('row') : xmlDoc.getElementsByTagName('song'))
+      
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]
+        const entry: any = {}
+        for (let j = 0; j < row.children.length; j++) {
+          const child = row.children[j]
+          entry[child.tagName] = child.textContent
+        }
+        songEntries.push(entry)
+      }
+    } else {
+      // Excel
+      const arrayBuffer = await metadataFile.arrayBuffer()
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+      const firstSheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[firstSheetName]
+      songEntries = XLSX.utils.sheet_to_json(worksheet)
+    }
+
+    if (songEntries.length === 0) {
+      ElMessage.warning('歌曲详情文件为空')
+      return
+    }
+
+    let successCount = 0
+    let warningMessages: string[] = []
+
+    // 3. 遍历并上传
+    for (const entry of songEntries) {
+      // 字段映射兼容
+      const name = entry['song_name'] || entry['歌曲名称']
+      const singer = entry['song_singer_name'] || entry['歌手']
+      const price = entry['song_price'] || entry['价格']
+      const fileName = entry['song_file'] || entry['录音文件']
+      const coverName = entry['song_cover'] || entry['封面文件']
+
+      if (!name) {
+        warningMessages.push(`跳过：缺少歌曲名称`)
+        continue
+      }
+
+      const formData = new FormData()
+      formData.append('song_name', name)
+      if (singer) formData.append('song_singer_name', singer)
+      formData.append('song_price', price || '0')
+
+      // 处理音频文件
+      if (fileName && resourceFiles.has(fileName)) {
+        formData.append('song_file', resourceFiles.get(fileName)!)
+      } else {
+        // 占位逻辑
+        const placeholderBlob = new Blob(['Placeholder Audio'], { type: 'audio/mp3' })
+        const placeholderFile = new File([placeholderBlob], 'placeholder.mp3', { type: 'audio/mp3' })
+        formData.append('song_file', placeholderFile)
+        warningMessages.push(`歌曲 "${name}"：未找到音频文件 "${fileName || '空'}"，已使用占位文件。`)
+      }
+
+      // 处理封面文件
+      if (coverName && resourceFiles.has(coverName)) {
+        formData.append('song_cover', resourceFiles.get(coverName)!)
+      } else {
+         // 占位逻辑
+        const placeholderBlob = new Blob(['Placeholder Image'], { type: 'image/jpeg' })
+        const placeholderFile = new File([placeholderBlob], 'placeholder.jpg', { type: 'image/jpeg' })
+        formData.append('song_cover', placeholderFile)
+        warningMessages.push(`歌曲 "${name}"：未找到封面文件 "${coverName || '空'}"，已使用占位图片。`)
+      }
+
+      try {
+        await uploadSong(formData)
+        successCount++
+      } catch (err) {
+        warningMessages.push(`歌曲 "${name}" 上传失败`)
+        console.error(err)
+      }
+    }
+
+    // 4. 结果反馈
+    if (successCount > 0) {
+      ElMessage.success(`成功导入 ${successCount} 首歌曲`)
+      fetchSongs()
+    }
+
+    if (warningMessages.length > 0) {
+      // 延迟一点显示警告，防止被成功消息覆盖
+      setTimeout(() => {
+        const msg = warningMessages.length > 5 
+          ? `导入完成，但有 ${warningMessages.length} 个警告（前5个）：\n${warningMessages.slice(0, 5).join('\n')}...` 
+          : `导入警告：\n${warningMessages.join('\n')}`
+        
+        ElMessageBox.alert(msg, '导入报告', {
+          confirmButtonText: '确定',
+          type: 'warning',
+          customStyle: { whiteSpace: 'pre-line' }
+        })
+      }, 500)
+    }
+
+  } catch (error) {
+    console.error('导入处理出错:', error)
+    ElMessage.error('导入处理出错，请检查文件格式')
+  } finally {
+    loading.value = false
+  }
+}
 
 // 外部导入相关
 const showExternalDialog = ref(false)
