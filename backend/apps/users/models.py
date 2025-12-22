@@ -15,6 +15,10 @@ class UserManager(BaseUserManager):
         if not user_name:
             raise ValueError('用户名是必填项')
         
+        # 默认头像处理：未提供则使用系统默认
+        if not extra_fields.get('user_avatar'):
+            extra_fields['user_avatar'] = 'avatars/default.png'
+        
         user = self.model(user_name=user_name, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)

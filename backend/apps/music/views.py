@@ -395,7 +395,7 @@ class SongViewSet(viewsets.ModelViewSet):
         """创建歌曲"""
         save_kwargs = {}
         if not serializer.validated_data.get('song_cover'):
-            save_kwargs['song_cover'] = 'covers/default.png'
+            save_kwargs['song_cover'] = 'covers/default_song.png'
         
         serializer.save(**save_kwargs)
     

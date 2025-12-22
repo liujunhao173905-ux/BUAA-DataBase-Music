@@ -120,8 +120,8 @@ DEFAULT_ASSETS_DIR = BASE_DIR / 'assets' / 'defaults'
 # 定义需要检查和复制的文件映射: (源文件名, 目标子目录, 目标文件名)
 FILES_TO_CHECK = [
     ('default_avatar.png', 'avatars', 'default.png'),
-    ('default_song_cover.png', 'covers', 'default.png'),
-    ('default_playlist_cover.png', 'covers', 'default.png'),
+    ('default_song_cover.png', 'covers', 'default_song.png'),
+    ('default_playlist_cover.png', 'covers', 'default_playlist.png'),
 ]
 
 # 只有当源目录存在时才执行检查
@@ -130,8 +130,8 @@ if DEFAULT_ASSETS_DIR.exists():
         source_file = DEFAULT_ASSETS_DIR / source_name
         target_file = MEDIA_ROOT / target_folder / target_name
         
-        # 如果目标文件不存在，且源文件存在，则复制
-        if not target_file.exists() and source_file.exists():
+        # 复制源到目标（覆盖以确保默认图像更新）
+        if source_file.exists():
             try:
                 shutil.copy2(source_file, target_file)
                 print(f" >>> [System Init] 已自动生成默认文件: {target_file}")

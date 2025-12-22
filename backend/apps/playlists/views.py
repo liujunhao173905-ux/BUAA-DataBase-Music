@@ -92,7 +92,10 @@ class PlaylistViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """创建歌单"""
-        serializer.save()
+        save_kwargs = {}
+        if not serializer.validated_data.get('playlist_cover'):
+            save_kwargs['playlist_cover'] = 'covers/default_playlist.png'
+        serializer.save(**save_kwargs)
     
     def perform_update(self, serializer):
         """更新歌单（需要重新审核）"""
