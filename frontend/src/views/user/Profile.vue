@@ -237,12 +237,17 @@ const handleUpdate = async () => {
     }
     const user = await updateUserProfile(formDataToSend)
     authStore.updateUser(user)
+    await authStore.initUser()
+    if (!authStore.isAuthenticated) {
+      ElMessage.error('登录状态已失效，请重新登录')
+      router.replace('/login')
+      return
+    }
     ElMessage.success('更新成功！')
   } finally {
-    // 50ms 闪一下即走
     setTimeout(() => {
       loading.value = false
-      router.back()
+      router.replace('/mine')
     }, 50)
   }
 }
