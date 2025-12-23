@@ -93,7 +93,7 @@ import { getUserReport, exportUserReport, type UserReportData } from '@/api/anal
 
 const router = useRouter()
 const handleBack = () => {
-  router.back()
+  router.push('/mine')
 }
 
 const reportData = ref<UserReportData>({

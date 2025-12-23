@@ -88,7 +88,7 @@
                         <el-icon><Headset /></el-icon> {{ playlist.song_count }}首
                       </div>
                       <div class="hover-overlay">
-                         <el-icon><VideoPlay /></el-icon>
+                         <el-icon><View /></el-icon>
                       </div>
                     </div>
                     <div class="playlist-info">
@@ -115,7 +115,7 @@
                   @row-dblclick="handlePlaySong"
                 >
                   <el-table-column type="index" width="60" align="center" />
-                  <el-table-column prop="song_name" label="歌曲" min-width="200">
+                  <el-table-column prop="song_name" label="歌曲" min-width="200" align="center">
                     <template #default="scope">
                       <div class="song-name-cell">
                          <div class="mini-cover-wrapper">
@@ -126,12 +126,12 @@
                       </div>
                     </template>
                   </el-table-column>
-                  <el-table-column prop="song_duration" label="时长" width="100">
+                  <el-table-column prop="song_duration" label="时长" width="100" align="center">
                     <template #default="scope">
                       <span class="duration">{{ formatDuration(scope.row.song_duration) }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column label="操作" width="150" align="right">
+                  <el-table-column label="操作" width="150" align="center">
                     <template #default="scope">
                       <el-button circle size="small" :icon="VideoPlay" @click.stop="handlePlaySong(scope.row)" class="action-btn-mini" />
                       <el-button circle size="small" :icon="Star" @click.stop="handleStarSong(scope.row)" class="action-btn-mini" />
@@ -152,7 +152,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Plus, Check, Male, Female, Collection, Headset, VideoPlay, Star } from '@element-plus/icons-vue'
+import { Plus, Check, Male, Female, Collection, Headset, VideoPlay, Star, View } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePlayerStore } from '@/stores/player'
 import { getUserDetail, followUser, unfollowUser } from '@/api/user'
@@ -215,7 +215,7 @@ const loadPlaylists = async (userId: number) => {
   loadingPlaylists.value = true
   try {
     const res = await getPlaylists({ creator_id: userId })
-    playlists.value = res.results || []
+    playlists.value = playlists.value = res.data?.playlists || []
   } catch (error) {
     console.error('Failed to load playlists', error)
   } finally {

@@ -183,7 +183,7 @@ export const downloadSong = (song: Song) => {
 
 // 获取歌单列表
 export const getPlaylists = (params?: any) => {
-  return request.get<{ count: number; next: string | null; previous: string | null; results: Playlist[] }>('/playlists/', { params }) as unknown as { count: number; next: string | null; previous: string | null; results: Playlist[] }
+  return request.get<{ data?: { playlists?: any[], total?: number } }>('/playlists/', { params })
 }
 
 // 获取歌单详情

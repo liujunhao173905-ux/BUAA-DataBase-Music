@@ -158,7 +158,7 @@ const handleCurrentChange = (current: number) => {
 }
 
 const handleBack = () => {
-  router.back()
+  router.push('/mine')
 }
 
 const formatPrice = (price: any) => {

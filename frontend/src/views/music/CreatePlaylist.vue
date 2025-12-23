@@ -154,7 +154,7 @@ const fetchStarredSongs = async () => {
   starredSongsLoading.value = true
   try {
     const response = await request.get('/music/songs/starred/')
-    starredSongs.value = response
+    starredSongs.value = response.results
   } catch (error) {
     ElMessage.error('加载收藏歌曲失败')
     console.error('Failed to fetch starred songs:', error)
@@ -168,7 +168,7 @@ const fetchBoughtSongs = async () => {
   boughtSongsLoading.value = true
   try {
     const response = await request.get('/music/songs/bought/')
-    boughtSongs.value = response
+    boughtSongs.value = response.results
   } catch (error) {
     ElMessage.error('加载购买歌曲失败')
     console.error('Failed to fetch bought songs:', error)

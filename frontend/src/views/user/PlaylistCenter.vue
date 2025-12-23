@@ -2,7 +2,7 @@
   <div class="center-container">
     <el-card shadow="hover" class="page-card">
       <template #header>
-        <el-page-header @back="$router.back()" content="歌单中心" title="返回" />
+        <el-page-header @back="handleBack" content="歌单中心" title="返回" />
       </template>
     
       <el-tabs v-model="activeTab" class="custom-tabs">
@@ -20,10 +20,16 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import MyStarredPlaylists from './MyStarredPlaylists.vue'
 import MyPlaylists from './MyPlaylists.vue'
 
 const activeTab = ref('starred')
+const router = useRouter()
+
+const handleBack = () => {
+  router.push('/mine')
+}
 </script>
 
 <style scoped>

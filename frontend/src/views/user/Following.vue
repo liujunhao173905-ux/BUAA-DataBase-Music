@@ -2,7 +2,7 @@
   <div class="following-container">
     <el-card class="following-card" shadow="never">
       <template #header>
-        <el-page-header @back="$router.back()" content="关注歌手" title="返回" />
+        <el-page-header @back="handleBack" content="关注歌手" title="返回" />
       </template>
 
       <div class="singer-list" v-loading="loading">
@@ -95,6 +95,10 @@ const fetchSingers = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleBack = () => {
+  router.push('/mine')
 }
 
 const handleSingerClick = (id: number) => {
